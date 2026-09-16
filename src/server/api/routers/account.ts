@@ -6,7 +6,7 @@ import {emailQueue} from "~/server/queues";
 import {env} from "~/env";
 
 export const accountRouter=createTRPCRouter({
-  me:protectedProcedure.query(({ctx})=>ctx.db.user.findUnique({where:{id:ctx.session.user.id},select:{id:true,email:true,name:true,locale:true,timezone:true,status:true,onboardingStatus:true,role:true}})),
+  me:protectedProcedure.query(({ctx})=>ctx.db.user.findUnique({where:{id:ctx.session.user.id},select:{id:true,email:true,emailVerified:true,name:true,locale:true,timezone:true,status:true,onboardingStatus:true,role:true}})),
   sessions:protectedProcedure.query(({ctx})=>ctx.db.session.findMany({where:{userId:ctx.session.user.id,revokedAt:null,expires:{gt:new Date()}},select:{id:true,createdAt:true,lastSeenAt:true,userAgent:true,expires:true},orderBy:{lastSeenAt:"desc"}})),
   revokeSession:protectedProcedure.input(z.object({id:z.string().cuid()})).mutation(async({ctx,input})=>{const result=await ctx.db.session.updateMany({where:{id:input.id,userId:ctx.session.user.id},data:{revokedAt:new Date(),expires:new Date(0)}});if(result.count)await ctx.db.securityEvent.create({data:{userId:ctx.session.user.id,type:"SESSION_REVOKED"}});return result;}),
   revokeOtherSessions:protectedProcedure.input(z.object({keepId:z.string().cuid()})).mutation(({ctx,input})=>ctx.db.$transaction(async tx=>{const result=await tx.session.updateMany({where:{userId:ctx.session.user.id,id:{not:input.keepId}},data:{revokedAt:new Date(),expires:new Date(0)}});await tx.securityEvent.create({data:{userId:ctx.session.user.id,type:"OTHER_SESSIONS_REVOKED",metadata:{count:result.count}}});return result;})),

@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { TRPCReactProvider } from "~/trpc/react";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -12,8 +13,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
       storageKey="olnk-theme"
     >
-      {children}
-      <Toaster closeButton position="bottom-right" />
+      <TRPCReactProvider>
+        {children}
+        <Toaster closeButton position="bottom-right" />
+      </TRPCReactProvider>
     </ThemeProvider>
   );
 }

@@ -16,13 +16,13 @@ const blockTypes = [
   { type: "SOCIALS", key: "blockSocials", descriptionKey: "blockSocialsDescription", icon: Share2 },
 ] as const;
 
-type DefaultCopyKey = "defaultLinkTitle" | "defaultText" | "defaultHeading";
+type BlockLabelKey = "blockLink" | "blockText" | "blockHeading";
 
-function defaultConfig(type: (typeof blockTypes)[number]["type"], t: (key: DefaultCopyKey) => string) {
+function defaultConfig(type: (typeof blockTypes)[number]["type"], t: (key: BlockLabelKey) => string) {
   switch (type) {
-    case "LINK": return { title: t("defaultLinkTitle"), url: "https://example.com" };
-    case "TEXT": return { text: t("defaultText") };
-    case "HEADING": return { text: t("defaultHeading"), level: 2 };
+    case "LINK": return { title: t("blockLink"), url: "https://example.com" };
+    case "TEXT": return { text: t("blockText") };
+    case "HEADING": return { text: t("blockHeading"), level: 2 };
     case "SOCIALS": return { items: [] };
     case "DIVIDER": return {};
   }

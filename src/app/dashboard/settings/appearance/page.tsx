@@ -1,0 +1,5 @@
+import { Languages, Palette } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { LocaleMenu } from "~/components/shared/locale-menu";
+import { ThemeMenu } from "~/components/shared/theme-menu";
+export default async function AppearancePage() { const t = await getTranslations("settings"); return <div className="space-y-6"><div><h3 className="text-lg font-semibold">{t("appearance")}</h3><p className="mt-1 text-sm text-muted-foreground">{t("appearanceDescription")}</p></div><div className="divide-y divide-border-subtle rounded-md border border-border"><div className="flex items-center gap-3 p-4"><Palette className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{t("theme")}</p><p className="mt-1 text-xs text-muted-foreground">{t("themeDescription")}</p></div><ThemeMenu /></div><div className="flex items-center gap-3 p-4"><Languages className="size-4 text-muted-foreground" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{t("language")}</p><p className="mt-1 text-xs text-muted-foreground">{t("languageDescription")}</p></div><LocaleMenu /></div></div></div>; }
