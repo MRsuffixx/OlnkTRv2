@@ -7,6 +7,9 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/data
 
 # database
 /prisma/db.sqlite

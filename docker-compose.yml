@@ -1,54 +1,35 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: olnktr-postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: olnktr
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d olnktr"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  adminer:
-    image: adminer:latest
-    container_name: olnktr-adminer
+    environment: {POSTGRES_USER: olnk, POSTGRES_PASSWORD: olnk_dev, POSTGRES_DB: olnktr}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck: {test: [CMD-SHELL, "pg_isready -U olnk -d olnktr"], interval: 5s, timeout: 5s, retries: 10}
+  redis:
+    image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # Next.js Uygulaması (İsteğe bağlı: 'docker compose --profile full up' ile çalışır)
+    command: [redis-server, --appendonly, "yes"]
+    volumes: [redis_data:/data]
+    healthcheck: {test: [CMD, redis-cli, ping], interval: 5s, timeout: 3s, retries: 10}
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports: ["8025:8025"]
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: olnktr-app
+    build: {context: ., target: runner}
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/olnktr
-      - AUTH_SECRET=FiAPl22PBgPX24d9ai/kS8TtmYz93ydvQTQDuw7JMw0=
-      - NEXTAUTH_URL=http://localhost:3000
-      - NODE_ENV=production
-    depends_on:
-      postgres:
-        condition: service_healthy
-    profiles:
-      - full
-
-volumes:
-  postgres_data:
-    driver: local
+    env_file: [.env]
+    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: mailpit, SMTP_PORT: 1025, APP_URL: http://localhost:3000, STORAGE_PUBLIC_URL: http://localhost:3000/uploads}
+    ports: ["3000:3000"]
+    volumes: [uploads:/app/data/uploads]
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}}
+    healthcheck: {test: [CMD-SHELL, "wget -qO- http://127.0.0.1:3000/api/health >/dev/null"], interval: 10s, timeout: 5s, retries: 12}
+  worker:
+    build: {context: ., target: worker}
+    restart: unless-stopped
+    env_file: [.env]
+    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: mailpit, SMTP_PORT: 1025}
+    volumes: [uploads:/app/data/uploads]
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}}
+    healthcheck: {test: [CMD, "./node_modules/.bin/tsx", "worker/healthcheck.ts"], interval: 10s, timeout: 5s, retries: 12}
+volumes: {postgres_data: {}, redis_data: {}, uploads: {}}

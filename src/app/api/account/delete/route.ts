@@ -1,0 +1,8 @@
+import {createHash} from "node:crypto";
+import {NextResponse} from "next/server";
+import {auth} from "~/server/auth";
+import {db} from "~/server/db";
+import {env} from "~/env";
+import {maintenanceQueue} from "~/server/queues";
+
+export async function GET(request:Request){const session=await auth();if(!session?.user)return NextResponse.redirect(new URL("/login",request.url));const token=new URL(request.url).searchParams.get("token")??"";const tokenHash=createHash("sha256").update(token).digest("hex");const executeAfter=new Date(Date.now()+env.ACCOUNT_DELETION_GRACE_DAYS*86_400_000);const deletion=await db.$transaction(async tx=>{const pending=await tx.accountDeletion.findFirst({where:{userId:session.user.id,tokenHash,status:"REQUESTED",requestedAt:{gt:new Date(Date.now()-60*60*1000)}}});if(!pending)return null;const row=await tx.accountDeletion.update({where:{id:pending.id},data:{status:"CONFIRMED",confirmedAt:new Date(),executeAfter}});await tx.user.update({where:{id:session.user.id},data:{status:"DELETION_PENDING"}});await tx.session.updateMany({where:{userId:session.user.id},data:{revokedAt:new Date(),expires:new Date(0)}});await tx.auditLog.create({data:{actorId:session.user.id,actorType:"USER",action:"ACCOUNT_DELETION_CONFIRMED",targetType:"User",targetId:session.user.id}});return row;});if(!deletion)return new NextResponse("Invalid, expired, or already used confirmation",{status:400});await maintenanceQueue.add("delete-account",{deletionId:deletion.id},{jobId:`delete-${deletion.id}`,delay:Math.max(0,executeAfter.getTime()-Date.now())});return NextResponse.redirect(new URL("/?accountDeletion=scheduled",request.url));}

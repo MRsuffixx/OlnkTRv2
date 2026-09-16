@@ -1,0 +1,1 @@
+export default function Verify(){return <main className="mx-auto max-w-md p-8"><h1 className="text-2xl font-bold">Check your email</h1><p className="mt-4">If this email can receive messages, a sign-in link has been sent.</p></main>}

@@ -1,4 +1,14 @@
 allowBuilds:
+  '@parcel/watcher': true
   '@prisma/client': true
   '@prisma/engines': true
+  '@swc/core': true
+  esbuild: true
+  msgpackr-extract: true
   prisma: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@vitest/coverage-v8@5.0.1'
+  - '@vitest/mocker@5.0.1'
+  - '@vitest/spy@5.0.1'
+  - vitest@5.0.1

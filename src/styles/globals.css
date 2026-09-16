@@ -1,6 +1,172 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-focus: var(--focus);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-border: var(--sidebar-border);
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --shadow-xs: var(--shadow-xs-value);
+  --shadow-sm: var(--shadow-sm-value);
+  --shadow-md: var(--shadow-md-value);
+  --shadow-floating: var(--shadow-floating-value);
+  --ease-product: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-enter: enter 180ms var(--ease-product);
+  --animate-popover: popover 160ms var(--ease-product);
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.985 0.003 270);
+  --foreground: oklch(0.205 0.018 275);
+  --surface: oklch(0.995 0.002 270);
+  --surface-raised: oklch(1 0 0);
+  --surface-hover: oklch(0.965 0.007 275);
+  --surface-active: oklch(0.942 0.015 275);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --muted: oklch(0.955 0.006 275);
+  --muted-foreground: oklch(0.49 0.025 275);
+  --border: oklch(0.89 0.012 275);
+  --border-subtle: oklch(0.93 0.008 275);
+  --border-strong: oklch(0.79 0.02 275);
+  --primary: oklch(0.55 0.22 282);
+  --primary-hover: oklch(0.5 0.23 282);
+  --primary-active: oklch(0.455 0.215 282);
+  --primary-foreground: oklch(0.99 0.005 270);
+  --success: oklch(0.56 0.15 155);
+  --success-soft: oklch(0.94 0.04 155);
+  --warning: oklch(0.67 0.15 72);
+  --warning-soft: oklch(0.96 0.05 83);
+  --danger: oklch(0.57 0.21 27);
+  --danger-hover: oklch(0.51 0.21 27);
+  --danger-soft: oklch(0.95 0.04 25);
+  --focus: oklch(0.62 0.2 282);
+  --sidebar: oklch(0.967 0.007 275);
+  --sidebar-foreground: oklch(0.25 0.02 275);
+  --sidebar-hover: oklch(0.94 0.014 275);
+  --sidebar-active: oklch(0.915 0.025 280);
+  --sidebar-border: oklch(0.895 0.012 275);
+  --shadow-xs-value: 0 1px 2px rgb(25 22 40 / 0.05);
+  --shadow-sm-value: 0 1px 3px rgb(25 22 40 / 0.07), 0 1px 2px rgb(25 22 40 / 0.04);
+  --shadow-md-value: 0 8px 24px rgb(25 22 40 / 0.09), 0 2px 6px rgb(25 22 40 / 0.04);
+  --shadow-floating-value: 0 18px 50px rgb(25 22 40 / 0.14), 0 3px 12px rgb(25 22 40 / 0.06);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.18 0.014 275);
+  --foreground: oklch(0.94 0.008 275);
+  --surface: oklch(0.205 0.016 275);
+  --surface-raised: oklch(0.235 0.018 275);
+  --surface-hover: oklch(0.265 0.022 275);
+  --surface-active: oklch(0.3 0.027 275);
+  --card: oklch(0.22 0.017 275);
+  --card-foreground: var(--foreground);
+  --muted: oklch(0.27 0.018 275);
+  --muted-foreground: oklch(0.7 0.022 275);
+  --border: oklch(0.32 0.023 275);
+  --border-subtle: oklch(0.275 0.02 275);
+  --border-strong: oklch(0.43 0.026 275);
+  --primary: oklch(0.69 0.19 282);
+  --primary-hover: oklch(0.74 0.17 282);
+  --primary-active: oklch(0.64 0.2 282);
+  --primary-foreground: oklch(0.16 0.03 280);
+  --success: oklch(0.72 0.14 155);
+  --success-soft: oklch(0.27 0.055 155);
+  --warning: oklch(0.79 0.14 82);
+  --warning-soft: oklch(0.29 0.05 72);
+  --danger: oklch(0.67 0.19 25);
+  --danger-hover: oklch(0.72 0.17 25);
+  --danger-soft: oklch(0.29 0.06 25);
+  --focus: oklch(0.71 0.17 282);
+  --sidebar: oklch(0.165 0.016 275);
+  --sidebar-foreground: oklch(0.89 0.01 275);
+  --sidebar-hover: oklch(0.23 0.021 275);
+  --sidebar-active: oklch(0.275 0.04 280);
+  --sidebar-border: oklch(0.27 0.02 275);
+  --shadow-xs-value: 0 1px 2px rgb(0 0 0 / 0.2);
+  --shadow-sm-value: 0 2px 5px rgb(0 0 0 / 0.22);
+  --shadow-md-value: 0 12px 30px rgb(0 0 0 / 0.28);
+  --shadow-floating-value: 0 24px 64px rgb(0 0 0 / 0.38);
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popover {
+  from { opacity: 0; transform: scale(0.98) translateY(-2px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+* { border-color: var(--border); }
+
+html {
+  background: var(--background);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: color-mix(in oklab, var(--primary) 24%, transparent); }
+
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

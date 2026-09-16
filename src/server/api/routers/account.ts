@@ -1,0 +1,14 @@
+import {createHash,randomBytes} from "node:crypto";
+import {z} from "zod";
+import {createTRPCRouter,protectedProcedure} from "../trpc";
+import {AppError} from "~/server/errors";
+import {emailQueue} from "~/server/queues";
+import {env} from "~/env";
+
+export const accountRouter=createTRPCRouter({
+  me:protectedProcedure.query(({ctx})=>ctx.db.user.findUnique({where:{id:ctx.session.user.id},select:{id:true,email:true,name:true,locale:true,timezone:true,status:true,onboardingStatus:true,role:true}})),
+  sessions:protectedProcedure.query(({ctx})=>ctx.db.session.findMany({where:{userId:ctx.session.user.id,revokedAt:null,expires:{gt:new Date()}},select:{id:true,createdAt:true,lastSeenAt:true,userAgent:true,expires:true},orderBy:{lastSeenAt:"desc"}})),
+  revokeSession:protectedProcedure.input(z.object({id:z.string().cuid()})).mutation(async({ctx,input})=>{const result=await ctx.db.session.updateMany({where:{id:input.id,userId:ctx.session.user.id},data:{revokedAt:new Date(),expires:new Date(0)}});if(result.count)await ctx.db.securityEvent.create({data:{userId:ctx.session.user.id,type:"SESSION_REVOKED"}});return result;}),
+  revokeOtherSessions:protectedProcedure.input(z.object({keepId:z.string().cuid()})).mutation(({ctx,input})=>ctx.db.$transaction(async tx=>{const result=await tx.session.updateMany({where:{userId:ctx.session.user.id,id:{not:input.keepId}},data:{revokedAt:new Date(),expires:new Date(0)}});await tx.securityEvent.create({data:{userId:ctx.session.user.id,type:"OTHER_SESSIONS_REVOKED",metadata:{count:result.count}}});return result;})),
+  requestDeletion:protectedProcedure.mutation(async({ctx})=>{if(!env.SMTP_HOST)throw new AppError("FEATURE_NOT_AVAILABLE","Email delivery is not configured");const user=await ctx.db.user.findUniqueOrThrow({where:{id:ctx.session.user.id},select:{email:true}});if(!user.email)throw new AppError("VALIDATION_ERROR","Account has no verified email");const token=randomBytes(32).toString("base64url");const tokenHash=createHash("sha256").update(token).digest("hex");await ctx.db.$transaction(async tx=>{await tx.accountDeletion.deleteMany({where:{userId:ctx.session.user.id,status:"REQUESTED"}});await tx.accountDeletion.create({data:{userId:ctx.session.user.id,tokenHash}});await tx.auditLog.create({data:{actorId:ctx.session.user.id,actorType:"USER",action:"ACCOUNT_DELETION_REQUESTED",targetType:"User",targetId:ctx.session.user.id}});});const url=`${env.APP_URL}/api/account/delete?token=${encodeURIComponent(token)}`;await emailQueue.add("account-deletion-confirmation",{template:"account-deletion-confirmation",message:{to:user.email,subject:"Confirm OlnkTR account deletion",text:`Confirm account deletion: ${url}`,html:`<p><a href="${url}">Confirm account deletion</a></p>`}},{jobId:`delete-${tokenHash}`});return{sent:true};})
+});

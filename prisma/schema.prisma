@@ -1,75 +1,656 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
-    output   = "../generated/prisma"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
-    provider = "postgresql"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
 }
 
-// Necessary for Next auth
-model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
-
-    @@unique([provider, providerAccountId])
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+  DELETION_PENDING
 }
 
-model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum OnboardingStatus {
+  NOT_STARTED
+  PROFILE_CREATED
+  COMPLETED
+}
+
+enum ProfileStatus {
+  DRAFT
+  ACTIVE
+  HIDDEN
+  MODERATION_HOLD
+}
+
+enum PageVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum BlockType {
+  LINK
+  TEXT
+  HEADING
+  DIVIDER
+  IMAGE
+  SOCIALS
+  GALLERY
+  VIDEO
+  MUSIC
+  SPOTIFY
+  YOUTUBE
+  TWITCH
+  DISCORD
+  COUNTDOWN
+  CONTACT
+  EMAIL
+  EMBED
+  PRODUCT
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+  PAUSED
+}
+
+enum FeatureKind {
+  BOOLEAN
+  LIMIT
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+  DEAD_LETTER
+}
+
+enum MediaStatus {
+  PENDING
+  READY
+  REJECTED
+  DELETED
+}
+
+enum StorageProviderKind {
+  LOCAL
+  S3
+}
+
+enum AnalyticsEventType {
+  PROFILE_VIEW
+  BLOCK_CLICK
+}
+
+enum ActorType {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum ReportReason {
+  SPAM
+  PHISHING
+  MALWARE
+  IMPERSONATION
+  ABUSE
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum DomainStatus {
+  PENDING
+  ACTIVE
+  FAILED
+  DISABLED
+}
+
+enum DeletionStatus {
+  REQUESTED
+  CONFIRMED
+  PROCESSING
+  COMPLETED
+  CANCELED
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+  id                   String                @id @default(cuid())
+  name                 String?
+  email                String?               @unique
+  emailVerified        DateTime?
+  image                String?
+  role                 UserRole              @default(USER)
+  locale               String                @default("en")
+  timezone             String                @default("UTC")
+  status               AccountStatus         @default(ACTIVE)
+  onboardingStatus     OnboardingStatus      @default(NOT_STARTED)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  accounts             Account[]
+  sessions             Session[]
+  profiles             Profile[]
+  subscriptions        Subscription[]
+  usageCounters        UsageCounter[]
+  mediaAssets          MediaAsset[]
+  auditEntries         AuditLog[]            @relation("AuditActor")
+  securityEvents       SecurityEvent[]
+  deletionRequests     AccountDeletion[]
+  entitlementOverrides EntitlementOverride[]
+  createdPageVersions  PageVersion[]         @relation("PageVersionCreator")
+  reservedUsernames    ReservedUsername[]    @relation("ReservedUsernameCreator")
+  assignedCases        ModerationCase[]      @relation("ModerationAssignee")
+  moderationActions    ModerationAction[]    @relation("ModerationActor")
+
+  @@index([status])
+}
+
+model Account {
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? @db.Text
+  access_token             String? @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? @db.Text
+  session_state            String?
+  refresh_token_expires_in Int?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  sessionToken String    @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastSeenAt   DateTime  @default(now())
+  revokedAt    DateTime?
+  ipHash       String?
+  userAgent    String?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expires])
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
+  @@index([expires])
+}
+
+model Profile {
+  id              String                  @id @default(cuid())
+  userId          String
+  username        String                  @unique @db.VarChar(30)
+  displayName     String                  @db.VarChar(80)
+  bio             String?                 @db.VarChar(500)
+  avatarAssetId   String?
+  status          ProfileStatus           @default(DRAFT)
+  verified        Boolean                 @default(false)
+  metadata        Json?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarAsset     MediaAsset?             @relation("ProfileAvatar", fields: [avatarAssetId], references: [id], onDelete: SetNull)
+  page            Page?
+  usernameHistory UsernameHistory[]
+  customDomains   CustomDomain[]
+  analytics       ProfileAnalyticsDaily[]
+  analyticsEvents AnalyticsEvent[]
+  reports         Report[]
+  moderationCases ModerationCase[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model UsernameHistory {
+  id        String   @id @default(cuid())
+  profileId String
+  username  String   @db.VarChar(30)
+  changedAt DateTime @default(now())
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([username])
+}
+
+model ReservedUsername {
+  username  String   @id @db.VarChar(30)
+  reason    String?
+  createdBy String?
+  createdAt DateTime @default(now())
+  creator   User?    @relation("ReservedUsernameCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+}
+
+model Page {
+  id          String           @id @default(cuid())
+  profileId   String           @unique
+  title       String?          @db.VarChar(120)
+  description String?          @db.VarChar(300)
+  visibility  PageVisibility   @default(PUBLIC)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  profile     Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  draft       PageDraft?
+  blocks      Block[]
+  versions    PageVersion[]
+  publication PagePublication?
+}
+
+model PageDraft {
+  id            String   @id @default(cuid())
+  pageId        String   @unique
+  schemaVersion Int      @default(1)
+  themeConfig   Json
+  seoConfig     Json
+  updatedAt     DateTime @updatedAt
+  page          Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+model Block {
+  id              String                @id @default(cuid())
+  pageId          String
+  type            BlockType
+  config          Json
+  position        Int
+  enabled         Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  page            Page                  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  analytics       BlockAnalyticsDaily[]
+  analyticsEvents AnalyticsEvent[]
+  reports         Report[]
+
+  @@index([pageId, position])
+}
+
+model Theme {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  name          String
+  schemaVersion Int      @default(1)
+  config        Json
+  premium       Boolean  @default(false)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PageVersion {
+  id                String           @id @default(cuid())
+  pageId            String
+  version           Int
+  schemaVersion     Int              @default(1)
+  snapshot          Json
+  createdById       String?
+  createdAt         DateTime         @default(now())
+  page              Page             @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  activePublication PagePublication?
+  createdBy         User?            @relation("PageVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([pageId, version])
+}
+
+model PagePublication {
+  pageId      String      @id
+  versionId   String      @unique
+  publishedAt DateTime    @default(now())
+  page        Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  version     PageVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+}
+
+model Plan {
+  id            String            @id @default(cuid())
+  key           String            @unique
+  name          String
+  active        Boolean           @default(true)
+  sortOrder     Int               @default(0)
+  metadata      Json?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  entitlements  PlanEntitlement[]
+  subscriptions Subscription[]
+}
+
+model Feature {
+  id            String                @id @default(cuid())
+  key           String                @unique
+  name          String
+  kind          FeatureKind
+  description   String?
+  createdAt     DateTime              @default(now())
+  entitlements  PlanEntitlement[]
+  usageCounters UsageCounter[]
+  overrides     EntitlementOverride[]
+}
+
+model PlanEntitlement {
+  id        String  @id @default(cuid())
+  planId    String
+  featureId String
+  enabled   Boolean @default(false)
+  limit     Int?
+  plan      Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+}
+
+model EntitlementOverride {
+  id        String    @id @default(cuid())
+  userId    String
+  featureId String
+  enabled   Boolean
+  limit     Int?
+  expiresAt DateTime?
+  reason    String
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature   Feature   @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureId])
+}
+
+model Subscription {
+  id                     String              @id @default(cuid())
+  userId                 String
+  planId                 String
+  provider               String
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  status                 SubscriptionStatus
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  canceledAt             DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                   Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
+  events                 SubscriptionEvent[]
+
+  @@unique([provider, providerSubscriptionId])
+  @@index([userId, status])
+}
+
+model SubscriptionEvent {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  type           String
+  fromStatus     SubscriptionStatus?
+  toStatus       SubscriptionStatus
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  subscription   Subscription        @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
+}
+
+model BillingWebhookEvent {
+  id               String           @id @default(cuid())
+  provider         String
+  providerEventId  String
+  eventType        String
+  payload          Json
+  receivedAt       DateTime         @default(now())
+  processedAt      DateTime?
+  processingStatus ProcessingStatus @default(PENDING)
+  error            String?
+
+  @@unique([provider, providerEventId])
+  @@index([processingStatus, receivedAt])
+}
+
+model UsageCounter {
+  id          String   @id @default(cuid())
+  userId      String
+  featureId   String
+  periodStart DateTime
+  periodEnd   DateTime
+  value       BigInt   @default(0)
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature     Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureId, periodStart])
+}
+
+model FeatureFlag {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  enabled      Boolean  @default(false)
+  environments String[] @default([])
+  adminOnly    Boolean  @default(false)
+  metadata     Json?
+  updatedAt    DateTime @updatedAt
+}
+
+model MediaAsset {
+  id           String              @id @default(cuid())
+  ownerId      String
+  provider     StorageProviderKind
+  bucket       String?
+  objectKey    String              @unique
+  originalName String?
+  mimeType     String
+  size         BigInt
+  width        Int?
+  height       Int?
+  checksum     String
+  status       MediaStatus         @default(PENDING)
+  private      Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  owner        User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  avatarFor    Profile[]           @relation("ProfileAvatar")
+
+  @@index([ownerId, status])
+}
+
+model AnalyticsEvent {
+  id           String             @id @default(cuid())
+  eventType    AnalyticsEventType
+  profileId    String
+  blockId      String?
+  occurredAt   DateTime           @default(now())
+  visitorHash  String?
+  referrerHost String?
+  country      String?            @db.VarChar(2)
+  device       String?
+  browser      String?
+  os           String?
+  profile      Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  block        Block?             @relation(fields: [blockId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, occurredAt])
+  @@index([blockId, occurredAt])
+}
+
+model ProfileAnalyticsDaily {
+  id          String   @id @default(cuid())
+  profileId   String
+  date        DateTime @db.Date
+  views       Int      @default(0)
+  uniqueViews Int      @default(0)
+  clicks      Int      @default(0)
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, date])
+}
+
+model BlockAnalyticsDaily {
+  id      String   @id @default(cuid())
+  blockId String
+  date    DateTime @db.Date
+  clicks  Int      @default(0)
+  block   Block    @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@unique([blockId, date])
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  actorId    String?
+  actorType  ActorType
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ipHash     String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  actor      User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String
+  severity  String   @default("INFO")
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model MailDelivery {
+  id            String           @id @default(cuid())
+  template      String
+  recipientHash String
+  provider      String
+  messageId     String?
+  status        ProcessingStatus @default(PENDING)
+  errorCode     String?
+  createdAt     DateTime         @default(now())
+  sentAt        DateTime?
+
+  @@index([status, createdAt])
+}
+
+model CustomDomain {
+  id                String       @id @default(cuid())
+  profileId         String
+  hostname          String       @unique
+  verificationToken String       @unique
+  verifiedAt        DateTime?
+  status            DomainStatus @default(PENDING)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  profile           Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, status])
+}
+
+model Report {
+  id             String          @id @default(cuid())
+  profileId      String
+  blockId        String?
+  reporterHash   String?
+  reason         ReportReason
+  details        String?         @db.VarChar(1000)
+  status         ReportStatus    @default(OPEN)
+  createdAt      DateTime        @default(now())
+  profile        Profile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  block          Block?          @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  moderationCase ModerationCase?
+
+  @@index([status, createdAt])
+}
+
+model ModerationCase {
+  id           String             @id @default(cuid())
+  reportId     String             @unique
+  profileId    String
+  assignedToId String?
+  status       ReportStatus       @default(OPEN)
+  notes        String?            @db.Text
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  report       Report             @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  profile      Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  actions      ModerationAction[]
+  assignedTo   User?              @relation("ModerationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model ModerationAction {
+  id        String         @id @default(cuid())
+  caseId    String
+  actorId   String
+  type      String
+  reason    String
+  metadata  Json?
+  createdAt DateTime       @default(now())
+  case      ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actor     User           @relation("ModerationActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+}
+
+model AccountDeletion {
+  id           String         @id @default(cuid())
+  userId       String
+  status       DeletionStatus @default(REQUESTED)
+  tokenHash    String         @unique
+  requestedAt  DateTime       @default(now())
+  confirmedAt  DateTime?
+  executeAfter DateTime?
+  completedAt  DateTime?
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, executeAfter])
+}
+
+model JobFailure {
+  id         String    @id @default(cuid())
+  queue      String
+  jobId      String?
+  jobName    String
+  errorCode  String
+  message    String
+  attempts   Int
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([queue, createdAt])
 }
