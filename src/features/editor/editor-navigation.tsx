@@ -1,6 +1,6 @@
 "use client";
 
-import { AlignLeft, Blocks, CaseSensitive, ImageIcon, MousePointer2, Search } from "lucide-react";
+import { AlignLeft, Blocks, CaseSensitive, ImageIcon, MousePointer2, Paintbrush, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { cn } from "~/lib/cn";
@@ -9,6 +9,7 @@ import type { EditorSection } from "./editor-reducer";
 const sections = [
   { id: "content", key: "content", icon: Blocks },
   { id: "appearance", key: "appearance", icon: AlignLeft },
+  { id: "themes", key: "themes", icon: Paintbrush },
   { id: "background", key: "background", icon: ImageIcon },
   { id: "typography", key: "typography", icon: CaseSensitive },
   { id: "buttons", key: "buttons", icon: MousePointer2 },

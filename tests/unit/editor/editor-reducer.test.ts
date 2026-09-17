@@ -20,6 +20,10 @@ const document: EditorDocument = {
 };
 
 describe("editorReducer", () => {
+  it("opens on the block list instead of selecting an item implicitly", () => {
+    expect(createEditorState(document).selectedBlockId).toBeNull();
+  });
+
   it("marks a local edit dirty without changing the confirmed snapshot", () => {
     const next = editorReducer(createEditorState(document), {
       type: "block.updated",
@@ -61,5 +65,12 @@ describe("editorReducer", () => {
     });
     expect(next.document.seo.robots).toBe("noindex,nofollow");
     expect(next.document.title).toBeNull();
+  });
+
+  it("opens theme presets without mutating the draft", () => {
+    const next = editorReducer(createEditorState(document), { type: "section.changed", section: "themes" });
+    expect(next.section).toBe("themes");
+    expect(next.document).toBe(document);
+    expect(next.saveStatus).toBe("saved");
   });
 });

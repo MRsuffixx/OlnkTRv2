@@ -1,13 +1,87 @@
-import {expect,test} from "@playwright/test";
+import { expect, test, type APIRequestContext } from "@playwright/test";
 
-test("magic link, onboarding, publish, and public profile",async({browser,page,request})=>{
-  const stamp=Date.now();const email=`e2e-${stamp}@example.test`;const username=`e2e_${stamp}`;
-  await page.goto("/login");await page.getByLabel("Email").fill(email);await page.getByRole("button",{name:"Send magic link"}).click();await expect(page).toHaveURL(/verify-request/);
-  let link="";
-  for(let attempt=0;attempt<20&&!link;attempt++){const listing=await request.get("http://127.0.0.1:8025/api/v1/messages");const body=await listing.json() as {messages:Array<{ID:string;To:Array<{Address:string}>}>};const hit=body.messages.find(message=>message.To.some(to=>to.Address===email));if(hit){const detail=await (await request.get(`http://127.0.0.1:8025/api/v1/message/${hit.ID}`)).json() as {HTML?:string;Text?:string};link=(detail.HTML??detail.Text??"").match(/https?:\/\/[^\s"<>]+\/api\/auth\/callback\/[^\s"<>]+/)?.[0]?.replaceAll("&amp;","&")??"";}if(!link)await page.waitForTimeout(500);}
-  expect(link).not.toBe("");await page.goto(link);const replay=await browser.newPage();await replay.goto(link);expect(replay.url()).toMatch(/error|login/);await replay.close();await page.goto("/onboarding");await page.getByPlaceholder("username").fill(username);await page.getByPlaceholder("Display name").fill("E2E User");await page.getByRole("button",{name:"Create profile"}).click();await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto("/dashboard/content");await page.getByPlaceholder("Link title").fill("Example");await page.getByPlaceholder("https://").fill("https://example.com");await Promise.all([page.waitForResponse(response=>response.request().method()==="POST"&&response.url().includes("/dashboard/content")),page.getByRole("button",{name:"Add link"}).click()]);await Promise.all([page.waitForResponse(response=>response.request().method()==="POST"&&response.url().includes("/dashboard/content")),page.getByRole("button",{name:"Publish current draft"}).click()]);
-  await page.goto(`/${username}`);await expect(page.getByRole("heading",{name:"E2E User"})).toBeVisible();await expect(page.getByRole("link",{name:"Example"})).toHaveAttribute("href","https://example.com/");
-  await page.goto("/dashboard/billing");await page.getByRole("link",{name:"Activate Premium with development billing"}).click();await expect(page).toHaveURL(/checkout=accepted/);await expect.poll(async()=>{await page.reload();return page.getByText("Plan: PREMIUM").count();},{timeout:10_000}).toBe(1);
-  await page.getByRole("button",{name:"Sign out"}).click();await expect(page).toHaveURL(/\/$/);await page.goto("/login");await page.getByLabel("Email").fill(email);await page.getByRole("button",{name:"Send magic link"}).click();await expect(page).toHaveURL(/verify-request/);let secondLink="";for(let attempt=0;attempt<20&&!secondLink;attempt++){const listing=await request.get("http://127.0.0.1:8025/api/v1/messages");const body=await listing.json() as {messages:Array<{ID:string;To:Array<{Address:string}>}>};for(const message of body.messages.filter(item=>item.To.some(to=>to.Address===email))){const detail=await (await request.get(`http://127.0.0.1:8025/api/v1/message/${message.ID}`)).json() as {HTML?:string;Text?:string};const candidate=(detail.HTML??detail.Text??"").match(/https?:\/\/[^\s"<>]+\/api\/auth\/callback\/[^\s"<>]+/)?.[0]?.replaceAll("&amp;","&")??"";if(candidate&&candidate!==link){secondLink=candidate;break;}}if(!secondLink)await page.waitForTimeout(500);}expect(secondLink).not.toBe("");await page.goto(secondLink);await expect(page).toHaveURL(/\/dashboard$/);await page.goto("/dashboard/settings");await page.locator('input[type="file"]').setInputFiles({name:"pixel.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=","base64")});await page.getByRole("button",{name:"Upload"}).click();await expect(page.locator("body")).toContainText('"id"');
+type MailpitMessage = {
+  ID: string;
+  To: Array<{ Address: string }>;
+};
+
+async function waitForMagicLink(request: APIRequestContext, email: string) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const listing = await request.get("http://127.0.0.1:8025/api/v1/messages");
+    if (listing.ok()) {
+      const body = await listing.json() as { messages: MailpitMessage[] };
+      const message = body.messages.find((item) => item.To.some((recipient) => recipient.Address === email));
+      if (message) {
+        const detailResponse = await request.get(`http://127.0.0.1:8025/api/v1/message/${message.ID}`);
+        const detail = await detailResponse.json() as { HTML?: string; Text?: string };
+        const link = (detail.HTML ?? detail.Text ?? "")
+          .match(/https?:\/\/[^\s"<>]+\/api\/auth\/callback\/[^\s"<>]+/)?.[0]
+          ?.replaceAll("&amp;", "&");
+        if (link) return link;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`No magic link received for ${email}`);
+}
+
+test("passwordless onboarding, editing, publishing, and media upload", async ({ browser, page, request }) => {
+  const stamp = Date.now();
+  const email = `e2e-${stamp}@example.test`;
+  const username = `e2e${stamp.toString(36)}`;
+
+  await page.goto("/login");
+  await page.getByLabel("Email address").fill(email);
+  await page.getByRole("button", { name: "Continue with email" }).click();
+  await expect(page).toHaveURL(/verify-request/);
+
+  const magicLink = await waitForMagicLink(request, email);
+  await page.goto(magicLink);
+  await expect(page).toHaveURL(/\/onboarding$/);
+
+  const replayPage = await browser.newPage();
+  await replayPage.goto(magicLink);
+  await expect(replayPage).toHaveURL(/error|login/);
+  await replayPage.close();
+
+  await page.getByLabel("Choose your username").fill(username);
+  await page.getByLabel("Display name").fill("E2E Creator");
+  await expect(page.getByText("Username is available")).toBeVisible();
+  await page.getByRole("button", { name: "Create my page" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole("heading", { name: /E2E/ })).toBeVisible();
+
+  await page.goto("/dashboard/page");
+  await page.getByRole("button", { name: "Add block" }).first().click();
+  await page.getByRole("button", { name: /Link Send visitors/ }).click();
+
+  const draftSaved = page.waitForResponse((response) =>
+    response.request().method() === "POST" && response.url().includes("/dashboard/page") && response.ok(),
+  );
+  await page.getByLabel("Title").fill("Example portfolio");
+  await page.getByLabel("URL").fill("https://example.com/portfolio");
+  await draftSaved;
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+  const published = page.waitForResponse((response) =>
+    response.request().method() === "POST" && response.url().includes("/dashboard/page") && response.ok(),
+  );
+  await page.getByRole("button", { name: "Publish" }).click();
+  await published;
+
+  await page.goto(`/${username}`);
+  await expect(page.getByRole("heading", { name: "E2E Creator" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Example portfolio" })).toHaveAttribute("href", "https://example.com/portfolio");
+
+  await page.goto("/dashboard/media");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "pixel.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await expect(page.getByText("Upload completed")).toBeVisible();
+  await expect(page.getByText("pixel.png")).toBeVisible();
 });

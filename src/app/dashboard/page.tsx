@@ -53,7 +53,7 @@ export default async function DashboardPage() {
       </section>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
         <section className="rounded-lg border border-border-subtle bg-card p-5 shadow-xs sm:p-6">
-          <TopBlocks items={summary.topBlocks} title={t("topLinks")} emptyTitle={t("noAnalyticsTitle")} emptyDescription={t("noAnalyticsDescription")} />
+          <TopBlocks items={summary.topBlocks} title={t("topLinks")} emptyTitle={t("noClicksTitle")} emptyDescription={t("noClicksDescription")} />
         </section>
         {profile ? <ProfileSummary username={profile.username} pageUrl={`${env.APP_URL}/${profile.username}`} published={Boolean(profile.page?.publication)} labels={{ title: t("yourPage"), published: t("published"), draft: t("draft"), edit: t("editPage"), view: t("viewPage"), copy: t("copyPageLink"), copied: t("copyPageLink") }} /> : null}
       </div>

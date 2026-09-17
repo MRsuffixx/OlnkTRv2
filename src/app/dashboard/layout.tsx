@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   };
 
   return (
-    <DashboardShell account={account} profileUrl={profile ? `/${profile.username}` : undefined}>
+    <DashboardShell account={account} profileUrl={profile ? `/${profile.username}` : undefined} pageId={profile?.page?.id}>
       {children}
     </DashboardShell>
   );

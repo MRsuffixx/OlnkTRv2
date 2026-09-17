@@ -10,7 +10,7 @@ export function PerformanceChart({ data, viewsLabel, clicksLabel }: { data: Anal
   const dateFormatter = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone: "UTC" });
   const numberFormatter = new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 });
   return (
-    <div className="h-72 w-full" role="img" aria-label={`${viewsLabel} and ${clicksLabel}`}>
+    <div className="h-72 w-full" role="img" aria-label={`${viewsLabel} / ${clicksLabel}`}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 12, right: 8, bottom: 0, left: -20 }}>
           <defs><linearGradient id="views-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.24} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient></defs>

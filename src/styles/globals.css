@@ -155,7 +155,10 @@ body {
 
 ::selection { background: color-mix(in oklab, var(--primary) 24%, transparent); }
 
-button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button, a, input, textarea, select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
 
 :focus-visible {
   outline: 2px solid var(--focus);

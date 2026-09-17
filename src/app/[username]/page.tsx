@@ -1,4 +1,44 @@
-import type {Metadata} from "next";import {notFound} from "next/navigation";import {cacheGet,cacheKeys,cacheSet} from "~/server/cache";import {getPublicSnapshot} from "~/server/publishing/service";import {parsePublicationSnapshot} from "~/server/publishing/snapshot";import {normalizeUsername} from "~/server/profile/username";import {AnalyticsBeacon,PublicLink} from "./analytics-beacon";
-async function load(raw:string){const username=normalizeUsername(raw);const cached=await cacheGet<{snapshot:unknown;profileId:string}>(cacheKeys.publicProfile(username));if(cached)return cached;const row=await getPublicSnapshot(username);if(!row)return null;const value={snapshot:row.version.snapshot,profileId:row.page.profile.id};await cacheSet(cacheKeys.publicProfile(username),value,300);return value;}
-export async function generateMetadata({params}:{params:Promise<{username:string}>}):Promise<Metadata>{const row=await load((await params).username);if(!row)return{};const snapshot=parsePublicationSnapshot(row.snapshot);return{title:snapshot.page.title??snapshot.profile.displayName,description:snapshot.page.description??snapshot.profile.bio??undefined,robots:snapshot.page.visibility==="UNLISTED"?{index:false,follow:false}:undefined};}
-export default async function PublicProfile({params}:{params:Promise<{username:string}>}){const row=await load((await params).username);if(!row)notFound();const s=parsePublicationSnapshot(row.snapshot);return <main className="mx-auto grid min-h-screen max-w-xl content-start gap-3 p-8" style={{background:s.theme.colors.background,color:s.theme.colors.text}}><AnalyticsBeacon profileId={row.profileId}/><h1 className="text-3xl font-bold">{s.profile.displayName}</h1>{s.profile.bio?<p>{s.profile.bio}</p>:null}{s.blocks.map(block=>{const c=block.config as Record<string,unknown>;if(block.type==="LINK")return <PublicLink key={block.id} profileId={row.profileId} blockId={block.id} title={String(c.title)} url={String(c.url)}/>;if(block.type==="HEADING")return <h2 key={block.id} className="text-xl font-bold">{String(c.text)}</h2>;if(block.type==="TEXT")return <p key={block.id}>{String(c.text)}</p>;if(block.type==="DIVIDER")return <hr key={block.id}/>;return null;})}</main>}
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
+
+import { PublicProfile } from "~/components/public/public-profile";
+import { env } from "~/env";
+import { cacheGet, cacheKeys, cacheSet } from "~/server/cache";
+import { getPublicSnapshot } from "~/server/publishing/service";
+import { parsePublicationSnapshot } from "~/server/publishing/snapshot";
+import { normalizeUsername, usernameSchema } from "~/server/profile/username";
+
+// Redis is the explicit cross-instance cache for published snapshots. Keep the
+// route dynamic so a pre-publish 404 cannot outlive the publication transaction.
+export const dynamic = "force-dynamic";
+
+const load = cache(async (raw: string) => {
+  const parsedUsername = usernameSchema.safeParse(normalizeUsername(raw));
+  if (!parsedUsername.success) return null;
+  const username = parsedUsername.data;
+  const cached = await cacheGet<{ snapshot: unknown; profileId: string }>(cacheKeys.publicProfile(username));
+  if (cached) return cached;
+  const row = await getPublicSnapshot(username);
+  if (!row) return null;
+  const value = { snapshot: row.version.snapshot, profileId: row.page.profile.id };
+  await cacheSet(cacheKeys.publicProfile(username), value, 300);
+  return value;
+});
+
+export async function generateMetadata({ params }: PageProps<"/[username]">): Promise<Metadata> {
+  const { username } = await params;
+  const row = await load(username);
+  if (!row) return {};
+  const snapshot = parsePublicationSnapshot(row.snapshot);
+  const title = snapshot.page.title ?? snapshot.profile.displayName;
+  const description = snapshot.page.description ?? snapshot.profile.bio ?? undefined;
+  return { title, description, alternates: { canonical: `${env.APP_URL}/${snapshot.profile.username}` }, openGraph: { type: "profile", title, description, url: `${env.APP_URL}/${snapshot.profile.username}` }, robots: snapshot.page.visibility === "UNLISTED" ? { index: false, follow: false } : undefined };
+}
+
+export default async function PublicProfilePage({ params }: PageProps<"/[username]">) {
+  const row = await load((await params).username);
+  if (!row) notFound();
+  const snapshot = parsePublicationSnapshot(row.snapshot);
+  return <PublicProfile snapshot={snapshot} profileId={row.profileId} />;
+}

@@ -1,4 +1,13 @@
-"use client";import {useEffect} from "react";
-function send(body:unknown){void fetch("/api/analytics",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),keepalive:true});}
-export function AnalyticsBeacon({profileId}:{profileId:string}){useEffect(()=>send({eventType:"PROFILE_VIEW",profileId}),[profileId]);return null;}
-export function PublicLink({profileId,blockId,title,url}:{profileId:string;blockId:string;title:string;url:string}){return <a className="block border p-3" href={url} rel="noopener noreferrer" onClick={()=>send({eventType:"BLOCK_CLICK",profileId,blockId})}>{title}</a>}
+"use client";
+
+import type { CSSProperties, ReactNode } from "react";
+import { useEffect } from "react";
+
+function send(body: unknown) { void fetch("/api/analytics", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), keepalive: true }); }
+
+export function AnalyticsBeacon({ profileId }: { profileId: string }) { useEffect(() => send({ eventType: "PROFILE_VIEW", profileId }), [profileId]); return null; }
+
+export function PublicTrackedLink({ profileId, blockId, href, className, style, children, label }: { profileId: string; blockId: string; href: string; className?: string; style?: CSSProperties; children: ReactNode; label?: string }) {
+  const external = href.startsWith("http://") || href.startsWith("https://");
+  return <a href={href} aria-label={label} className={className} style={style} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined} onClick={() => send({ eventType: "BLOCK_CLICK", profileId, blockId })}>{children}</a>;
+}

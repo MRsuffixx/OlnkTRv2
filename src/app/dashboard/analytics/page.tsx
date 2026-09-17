@@ -28,7 +28,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <PageHeader title={t("title")} description={t("subtitle")} actions={<DateRangeFilter active={summary.days} labels={{ 7: t("last7Days"), 30: t("last30Days"), 90: t("last90Days"), 365: t("lastYear") }} />} />
+      <PageHeader title={t("title")} description={t("subtitle")} actions={<DateRangeFilter active={summary.days} ariaLabel={t("dateRange")} labels={{ 7: t("last7Days"), 30: t("last30Days"), 90: t("last90Days"), 365: t("lastYear") }} />} />
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label={dashboard("views")} value={formatter.format(summary.totals.views)} icon={Eye} />
         <Metric label={dashboard("uniqueVisitors")} value={formatter.format(summary.totals.uniqueViews)} icon={UsersRound} />
@@ -40,7 +40,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <div className="mt-5">{hasAnalytics ? <PerformanceChart data={series} viewsLabel={dashboard("views")} clicksLabel={dashboard("clicks")} /> : <EmptyState icon={Activity} title={dashboard("noAnalyticsTitle")} description={dashboard("noAnalyticsDescription")} />}</div>
       </section>
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <section className="rounded-lg border border-border-subtle bg-card p-5 shadow-xs sm:p-6"><TopBlocks items={summary.topBlocks} title={t("topLinks")} emptyTitle={dashboard("noAnalyticsTitle")} emptyDescription={dashboard("noAnalyticsDescription")} /></section>
+        <section className="rounded-lg border border-border-subtle bg-card p-5 shadow-xs sm:p-6"><TopBlocks items={summary.topBlocks} title={t("topLinks")} emptyTitle={dashboard("noClicksTitle")} emptyDescription={dashboard("noClicksDescription")} /></section>
         <section className="grid gap-8 rounded-lg border border-border-subtle bg-card p-5 shadow-xs sm:p-6"><BreakdownList title={t("countries")} items={summary.breakdowns.countries} /><BreakdownList title={t("devices")} items={summary.breakdowns.devices} /><BreakdownList title={t("referrers")} items={summary.breakdowns.referrers} /></section>
       </div>
     </div>

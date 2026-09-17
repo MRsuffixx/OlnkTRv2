@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ChevronsLeft, ChevronsRight, CircleHelp, CreditCard, Globe2, ImageIcon, LayoutDashboard, Palette, Settings2 } from "lucide-react";
+import { BarChart3, ChevronsLeft, ChevronsRight, CreditCard, Globe2, ImageIcon, LayoutDashboard, Palette, Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,7 +34,7 @@ export function Sidebar({ collapsed, onToggle, account }: { collapsed: boolean; 
       <aside data-testid="dashboard-sidebar" data-collapsed={collapsed} className={cn("sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-product md:flex md:w-[68px]", collapsed ? "lg:w-[68px]" : "lg:w-[248px]")}> 
         <div className="flex h-16 items-center justify-between px-5 md:justify-center lg:justify-between">
           <Logo compact={collapsed} className={cn("md:[&>span:last-child]:hidden", !collapsed && "lg:[&>span:last-child]:inline")} />
-          <IconButton label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={onToggle} className={cn("hidden size-7 lg:inline-flex", collapsed && "lg:hidden")}>
+          <IconButton label={collapsed ? common("expandSidebar") : common("collapseSidebar")} onClick={onToggle} className={cn("hidden size-7 lg:inline-flex", collapsed && "lg:hidden")}> 
             <ChevronsLeft />
           </IconButton>
         </div>
@@ -60,11 +60,10 @@ export function Sidebar({ collapsed, onToggle, account }: { collapsed: boolean; 
         </nav>
         <div className="border-t border-sidebar-border p-2.5">
           <div className={cn("mb-2 flex items-center", collapsed ? "flex-col gap-1" : "md:flex-col md:gap-1 lg:flex-row lg:justify-between")}>
-            <Tooltip><TooltipTrigger asChild><Link href="/support" className="flex size-9 items-center justify-center rounded-sm text-muted-foreground hover:bg-sidebar-hover hover:text-sidebar-foreground"><CircleHelp className="size-4" /><span className="sr-only">{common("help")}</span></Link></TooltipTrigger><TooltipContent side="right">{common("help")}</TooltipContent></Tooltip>
             <div className="flex items-center"><LocaleMenu /><ThemeMenu /></div>
           </div>
           <AccountMenu account={account} collapsed={collapsed} />
-          {collapsed ? <IconButton label="Expand sidebar" onClick={onToggle} className="mt-2 hidden w-full lg:inline-flex"><ChevronsRight /></IconButton> : null}
+          {collapsed ? <IconButton label={common("expandSidebar")} onClick={onToggle} className="mt-2 hidden w-full lg:inline-flex"><ChevronsRight /></IconButton> : null}
         </div>
       </aside>
     </TooltipProvider>
