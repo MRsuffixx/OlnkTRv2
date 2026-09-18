@@ -302,6 +302,7 @@ docker-compose.override.yml
 *.tgz
 .yarn-integrity
 .pnpm-store/
+.worktrees/
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
