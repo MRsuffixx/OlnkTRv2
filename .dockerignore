@@ -12,3 +12,4 @@ data
 !.env.example
 *.log
 *.tsbuildinfo
+.worktrees
