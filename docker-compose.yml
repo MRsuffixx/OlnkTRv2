@@ -15,21 +15,28 @@ services:
     image: axllent/mailpit:v1.27
     restart: unless-stopped
     ports: ["8025:8025"]
+  migrate:
+    build: {context: ., target: builder}
+    restart: "no"
+    env_file: [.env]
+    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr}
+    command: ["sh", "-c", "pnpm db:migrate && pnpm db:seed"]
+    depends_on: {postgres: {condition: service_healthy}}
   app:
     build: {context: ., target: runner}
     restart: unless-stopped
     env_file: [.env]
-    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: mailpit, SMTP_PORT: 1025, APP_URL: http://localhost:3000, STORAGE_PUBLIC_URL: http://localhost:3000/uploads}
+    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: "${SMTP_HOST:-mailpit}", SMTP_PORT: "${SMTP_PORT:-1025}", APP_URL: "${APP_URL:-http://localhost:3000}", AUTH_URL: "${APP_URL:-http://localhost:3000}", STORAGE_PUBLIC_URL: "${STORAGE_PUBLIC_URL:-http://localhost:3000/uploads}"}
     ports: ["3000:3000"]
     volumes: [uploads:/app/data/uploads]
-    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}}
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}, migrate: {condition: service_completed_successfully}}
     healthcheck: {test: [CMD-SHELL, "wget -qO- http://127.0.0.1:3000/api/health >/dev/null"], interval: 10s, timeout: 5s, retries: 12}
   worker:
     build: {context: ., target: worker}
     restart: unless-stopped
     env_file: [.env]
-    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: mailpit, SMTP_PORT: 1025}
+    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: "${SMTP_HOST:-mailpit}", SMTP_PORT: "${SMTP_PORT:-1025}"}
     volumes: [uploads:/app/data/uploads]
-    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}}
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}, migrate: {condition: service_completed_successfully}}
     healthcheck: {test: [CMD, "./node_modules/.bin/tsx", "worker/healthcheck.ts"], interval: 10s, timeout: 5s, retries: 12}
 volumes: {postgres_data: {}, redis_data: {}, uploads: {}}
