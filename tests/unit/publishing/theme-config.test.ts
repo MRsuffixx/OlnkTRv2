@@ -11,7 +11,8 @@ describe("theme config normalization", () => {
 
     expect(theme.layout.alignment).toBe("center");
     expect(theme.layout.maxWidth).toBe(560);
-    expect(theme.background.type).toBe("COLOR");
+    expect(theme.schemaVersion).toBe(2);
+    expect(theme.background.type).toBe("SOLID");
     expect(theme.buttons.shape).toBe("rounded");
   });
 

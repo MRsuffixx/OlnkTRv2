@@ -4,7 +4,8 @@ import {AppError} from "~/server/errors";
 import {usernameSchema} from "./username";
 import {cacheDelete,cacheKeys} from "~/server/cache";
 import {isRetryableTransactionError} from "~/server/db/transaction";
-const defaultTheme={schemaVersion:1,colors:{background:"#ffffff",text:"#111111"}};
+import {defaultThemeConfig} from "~/server/publishing/theme-v2";
+const defaultTheme=defaultThemeConfig;
 const defaultSeo={schemaVersion:1,robots:"index,follow"};
 export async function completeOnboarding(userId:string,input:{username:string;displayName:string}){
   const username=usernameSchema.parse(input.username);

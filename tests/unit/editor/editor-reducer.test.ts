@@ -1,20 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createEditorState, editorReducer, type EditorDocument } from "~/features/editor/editor-reducer";
+import { defaultThemeConfig } from "~/server/publishing/theme-v2";
 
 const document: EditorDocument = {
   pageId: "page-1",
   title: null,
   description: null,
   visibility: "PUBLIC",
-  theme: {
-    schemaVersion: 1,
-    colors: { background: "#ffffff", text: "#111111", accent: "#6d5dfc" },
-    layout: { alignment: "center", maxWidth: 560, blockGap: 12, pagePadding: 24, avatarShape: "circle" },
-    background: { type: "COLOR" },
-    typography: { family: "geist", scale: 100, weight: "medium", lineHeight: 1.5 },
-    buttons: { style: "fill", shape: "rounded", height: 52, shadow: "soft" },
-  },
+  theme: defaultThemeConfig,
   seo: { schemaVersion: 1, robots: "index,follow" },
   blocks: [{ id: "block-1", type: "LINK", position: 0, enabled: true, config: { title: "GitHub", url: "https://github.com" } }],
 };

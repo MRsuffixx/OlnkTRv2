@@ -1,6 +1,16 @@
 import type { ThemeConfig } from "~/server/publishing/snapshot";
 
-export type EditorSection = "content" | "appearance" | "themes" | "background" | "typography" | "buttons" | "seo";
+export type EditorSection =
+  | "content"
+  | "appearance"
+  | "profile"
+  | "themes"
+  | "background"
+  | "typography"
+  | "buttons"
+  | "effects"
+  | "socials"
+  | "seo";
 export type PreviewDevice = "mobile" | "tablet" | "desktop";
 export type SaveStatus = "saved" | "dirty" | "saving" | "error";
 

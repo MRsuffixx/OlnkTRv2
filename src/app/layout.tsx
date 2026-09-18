@@ -1,7 +1,17 @@
 import "~/styles/globals.css";
 
 import { type Metadata, type Viewport } from "next";
-import { Geist } from "next/font/google";
+import {
+  DM_Sans,
+  Geist,
+  Inter,
+  JetBrains_Mono,
+  Lora,
+  Manrope,
+  Playfair_Display,
+  Space_Grotesk,
+  Space_Mono,
+} from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -25,6 +35,39 @@ const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist-sans",
 });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
+const lora = Lora({ subsets: ["latin"], variable: "--font-lora" });
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair-display",
+});
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
+});
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+});
+
+const fontVariables = [
+  geist.variable,
+  inter.variable,
+  manrope.variable,
+  dmSans.variable,
+  spaceGrotesk.variable,
+  lora.variable,
+  playfairDisplay.variable,
+  spaceMono.variable,
+  jetBrainsMono.variable,
+].join(" ");
 
 export default async function RootLayout({
   children,
@@ -37,7 +80,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={geist.variable}
+      className={fontVariables}
       suppressHydrationWarning
       data-scroll-behavior="smooth"
     >

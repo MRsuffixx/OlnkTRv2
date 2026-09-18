@@ -1,7 +1,9 @@
 "use client";
 
+import { Crown } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "~/components/ui/badge";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import {
@@ -16,6 +18,25 @@ import type {
   EditorSection,
   EditorSeoConfig,
 } from "./editor-reducer";
+
+const fontOptions = [
+  ["geist", "Geist", false],
+  ["inter", "Inter", false],
+  ["manrope", "Manrope", false],
+  ["dm-sans", "DM Sans", false],
+  ["space-grotesk", "Space Grotesk", false],
+  ["lora", "Lora", false],
+  ["space-mono", "Space Mono", false],
+  ["playfair-display", "Playfair Display · PRO", true],
+  ["jetbrains-mono", "JetBrains Mono · PRO", true],
+] as const;
+
+const blankOverlay = {
+  color: "#000000",
+  opacity: 0,
+  blur: 0,
+  glass: 0,
+} as const;
 
 function ColorField({
   label,
@@ -42,6 +63,84 @@ function ColorField({
   );
 }
 
+function SectionTitle({
+  children,
+  premium = false,
+}: {
+  children: React.ReactNode;
+  premium?: boolean;
+}) {
+  return (
+    <div className="mb-4 flex items-center gap-2">
+      <h4 className="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+        {children}
+      </h4>
+      {premium ? (
+        <Badge variant="primary" className="gap-1 text-[9px]">
+          <Crown className="size-2.5" /> PRO
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
+
+function ControlSection({
+  title,
+  children,
+  premium,
+}: {
+  title: string;
+  children: React.ReactNode;
+  premium?: boolean;
+}) {
+  return (
+    <section>
+      <SectionTitle premium={premium}>{title}</SectionTitle>
+      <div className="grid gap-5">{children}</div>
+    </section>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix = "",
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  suffix?: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3 text-sm font-medium">
+        <span>{label}</span>
+        <span className="text-xs font-normal tabular-nums text-muted-foreground">
+          {value}
+          {suffix}
+        </span>
+      </div>
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={(values) => {
+          const next = values[0];
+          if (typeof next === "number") onChange(next);
+        }}
+      />
+    </div>
+  );
+}
+
 export function AppearanceInspector({
   section,
   document,
@@ -65,12 +164,43 @@ export function AppearanceInspector({
   const theme = document.theme;
   const replace = (patch: Partial<ThemeConfig>) =>
     onThemeChange({ ...theme, ...patch });
-  const updateGradient = (
-    patch: Partial<{ from: string; to: string; angle: number }>,
-  ) => {
-    if (theme.background.type !== "GRADIENT") return;
-    replace({ background: { ...theme.background, ...patch } });
-  };
+  const replaceColors = (patch: Partial<ThemeConfig["colors"]>) =>
+    replace({ colors: { ...theme.colors, ...patch } });
+  const replaceOverlay = (
+    patch: Partial<ThemeConfig["background"]["overlay"]>,
+  ) =>
+    replace({
+      background: {
+        ...theme.background,
+        overlay: { ...theme.background.overlay, ...patch },
+      },
+    });
+  const primaryBackgroundColor =
+    theme.background.type === "SOLID"
+      ? theme.background.color
+      : theme.background.type === "GRADIENT" ||
+          theme.background.type === "ANIMATED_GRADIENT"
+        ? (theme.background.stops[0] ?? theme.colors.background)
+        : theme.colors.background;
+
+  function updateBackgroundColor(value: string, index = 0) {
+    if (theme.background.type === "SOLID") {
+      replace({
+        background: { ...theme.background, color: value },
+        colors: { ...theme.colors, background: value },
+      });
+      return;
+    }
+    if (
+      theme.background.type === "GRADIENT" ||
+      theme.background.type === "ANIMATED_GRADIENT"
+    ) {
+      const stops = [...theme.background.stops];
+      stops[index] = value;
+      replace({ background: { ...theme.background, stops } });
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="border-b border-border-subtle p-4">
@@ -79,7 +209,7 @@ export function AppearanceInspector({
         </p>
         <h3 className="mt-1 text-sm font-semibold">{t(section)}</h3>
       </div>
-      <div className="grid gap-6 p-4">
+      <div className="grid gap-7 p-4">
         {section === "themes" ? (
           <div>
             <p className="mb-4 text-sm leading-6 text-muted-foreground">
@@ -87,51 +217,30 @@ export function AppearanceInspector({
             </p>
             <div className="grid grid-cols-2 gap-3">
               {[
-                {
-                  key: "studio",
-                  background: "#F7F7FA",
-                  text: "#181824",
-                  accent: "#6558E8",
-                  to: "#ECEAFB",
-                },
-                {
-                  key: "midnight",
-                  background: "#11111B",
-                  text: "#F3F1FF",
-                  accent: "#9B8CFF",
-                  to: "#26214A",
-                },
-                {
-                  key: "sunset",
-                  background: "#FFF5EF",
-                  text: "#3D1E22",
-                  accent: "#E45D5D",
-                  to: "#FFD5B8",
-                },
-                {
-                  key: "paper",
-                  background: "#F5F0E6",
-                  text: "#28251F",
-                  accent: "#766A55",
-                  to: "#E6DCCB",
-                },
-              ].map((preset) => (
+                ["studio", "#F7F7FA", "#181824", "#6558E8", "#ECEAFB"],
+                ["midnight", "#11111B", "#F3F1FF", "#9B8CFF", "#26214A"],
+                ["sunset", "#FFF5EF", "#3D1E22", "#E45D5D", "#FFD5B8"],
+                ["paper", "#F5F0E6", "#28251F", "#766A55", "#E6DCCB"],
+              ].map(([key, background, text, accent, end]) => (
                 <button
                   type="button"
-                  key={preset.key}
+                  key={key}
                   onClick={() =>
                     onThemeChange({
                       ...theme,
                       colors: {
-                        background: preset.background,
-                        text: preset.text,
-                        accent: preset.accent,
+                        ...theme.colors,
+                        background: background!,
+                        text: text!,
+                        mutedText: text!,
+                        accent: accent!,
+                        button: accent!,
                       },
                       background: {
                         type: "GRADIENT",
-                        from: preset.background,
-                        to: preset.to,
+                        stops: [background!, end!],
                         angle: 145,
+                        overlay: blankOverlay,
                       },
                     })
                   }
@@ -140,20 +249,95 @@ export function AppearanceInspector({
                   <span
                     className="block h-20"
                     style={{
-                      background: `linear-gradient(145deg, ${preset.background}, ${preset.to})`,
+                      background: `linear-gradient(145deg, ${background}, ${end})`,
                     }}
                   />
                   <span className="block px-3 py-2 text-xs font-medium">
-                    {presets(preset.key as "studio")}
+                    {presets(key as "studio")}
                   </span>
                 </button>
               ))}
             </div>
           </div>
         ) : null}
+
         {section === "appearance" ? (
           <>
+            <ControlSection title={t("pageMode")}>
+              <Field label={t("modeStrategy")} htmlFor="mode-strategy">
+                <select
+                  id="mode-strategy"
+                  value={theme.mode.strategy}
+                  onChange={(event) =>
+                    replace({
+                      mode: {
+                        ...theme.mode,
+                        strategy: event.target
+                          .value as ThemeConfig["mode"]["strategy"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="light">{t("modeLight")}</option>
+                  <option value="dark">{t("modeDark")}</option>
+                  <option value="system">{t("modeSystem")}</option>
+                  <option value="scheduled">{t("modeScheduled")}</option>
+                </select>
+              </Field>
+              {theme.mode.strategy === "scheduled" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t("dayStarts")} htmlFor="day-start">
+                    <Input
+                      id="day-start"
+                      type="time"
+                      value={theme.mode.dayStart}
+                      onChange={(event) =>
+                        replace({
+                          mode: { ...theme.mode, dayStart: event.target.value },
+                        })
+                      }
+                    />
+                  </Field>
+                  <Field label={t("nightStarts")} htmlFor="night-start">
+                    <Input
+                      id="night-start"
+                      type="time"
+                      value={theme.mode.nightStart}
+                      onChange={(event) =>
+                        replace({
+                          mode: {
+                            ...theme.mode,
+                            nightStart: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </Field>
+                </div>
+              ) : null}
+            </ControlSection>
             <ControlSection title={t("layout")}>
+              <Field label={t("profileLayout")} htmlFor="profile-layout">
+                <select
+                  id="profile-layout"
+                  value={theme.layout.profileLayout}
+                  onChange={(event) =>
+                    replace({
+                      layout: {
+                        ...theme.layout,
+                        profileLayout: event.target
+                          .value as ThemeConfig["layout"]["profileLayout"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="centered">{t("layoutCentered")}</option>
+                  <option value="left-card">{t("layoutLeftCard")}</option>
+                  <option value="banner">{t("layoutBannerPro")}</option>
+                </select>
+              </Field>
               <Field label={t("alignment")} htmlFor="alignment">
                 <SegmentedControl
                   type="single"
@@ -180,8 +364,9 @@ export function AppearanceInspector({
                 label={t("profileWidth")}
                 value={theme.layout.maxWidth}
                 min={360}
-                max={840}
+                max={960}
                 step={20}
+                suffix="px"
                 onChange={(maxWidth) =>
                   replace({ layout: { ...theme.layout, maxWidth } })
                 }
@@ -192,8 +377,9 @@ export function AppearanceInspector({
                 label={t("blockGap")}
                 value={theme.layout.blockGap}
                 min={4}
-                max={40}
+                max={48}
                 step={2}
+                suffix="px"
                 onChange={(blockGap) =>
                   replace({ layout: { ...theme.layout, blockGap } })
                 }
@@ -202,24 +388,41 @@ export function AppearanceInspector({
                 label={t("pagePadding")}
                 value={theme.layout.pagePadding}
                 min={12}
-                max={64}
+                max={80}
                 step={2}
+                suffix="px"
                 onChange={(pagePadding) =>
                   replace({ layout: { ...theme.layout, pagePadding } })
                 }
               />
             </ControlSection>
+          </>
+        ) : null}
+
+        {section === "profile" ? (
+          <>
             <ControlSection title={t("avatar")}>
+              <RangeField
+                label={t("avatarSize")}
+                value={theme.avatar.size}
+                min={48}
+                max={192}
+                step={4}
+                suffix="px"
+                onChange={(size) =>
+                  replace({ avatar: { ...theme.avatar, size } })
+                }
+              />
               <Field label={t("shape")} htmlFor="avatar-shape">
                 <select
                   id="avatar-shape"
-                  value={theme.layout.avatarShape}
+                  value={theme.avatar.shape}
                   onChange={(event) =>
                     replace({
-                      layout: {
-                        ...theme.layout,
-                        avatarShape: event.target
-                          .value as ThemeConfig["layout"]["avatarShape"],
+                      avatar: {
+                        ...theme.avatar,
+                        shape: event.target
+                          .value as ThemeConfig["avatar"]["shape"],
                       },
                     })
                   }
@@ -230,56 +433,193 @@ export function AppearanceInspector({
                   <option value="square">{t("square")}</option>
                 </select>
               </Field>
+              <RangeField
+                label={t("borderWidth")}
+                value={theme.avatar.borderWidth}
+                min={0}
+                max={10}
+                step={1}
+                suffix="px"
+                onChange={(borderWidth) =>
+                  replace({ avatar: { ...theme.avatar, borderWidth } })
+                }
+              />
+              <ColorField
+                label={t("borderColor")}
+                value={theme.avatar.borderColor}
+                onChange={(borderColor) =>
+                  replace({ avatar: { ...theme.avatar, borderColor } })
+                }
+              />
+            </ControlSection>
+            <ControlSection title={t("avatarFrame")}>
+              <Field label={t("ringStyle")} htmlFor="avatar-ring">
+                <select
+                  id="avatar-ring"
+                  value={theme.avatar.ring.style}
+                  onChange={(event) =>
+                    replace({
+                      avatar: {
+                        ...theme.avatar,
+                        ring: {
+                          ...theme.avatar.ring,
+                          style: event.target
+                            .value as ThemeConfig["avatar"]["ring"]["style"],
+                        },
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="none">{t("none")}</option>
+                  <option value="solid">{t("solid")}</option>
+                  <option value="gradient">{t("gradient")}</option>
+                  <option value="neon">{t("neonPro")}</option>
+                </select>
+              </Field>
+              <ColorField
+                label={t("ringColor")}
+                value={theme.avatar.ring.colors[0] ?? theme.colors.accent}
+                onChange={(value) =>
+                  replace({
+                    avatar: {
+                      ...theme.avatar,
+                      ring: {
+                        ...theme.avatar.ring,
+                        colors: [value, ...theme.avatar.ring.colors.slice(1)],
+                      },
+                    },
+                  })
+                }
+              />
+              <Field label={t("shadow")} htmlFor="avatar-shadow">
+                <select
+                  id="avatar-shadow"
+                  value={theme.avatar.shadow}
+                  onChange={(event) =>
+                    replace({
+                      avatar: {
+                        ...theme.avatar,
+                        shadow: event.target
+                          .value as ThemeConfig["avatar"]["shadow"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="none">{t("none")}</option>
+                  <option value="soft">{t("soft")}</option>
+                  <option value="strong">{t("strong")}</option>
+                  <option value="glow">{t("glow")}</option>
+                </select>
+              </Field>
+            </ControlSection>
+            <ControlSection title={t("cropAndZoom")}>
+              <RangeField
+                label={t("horizontalPosition")}
+                value={theme.avatar.cropX}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(cropX) =>
+                  replace({ avatar: { ...theme.avatar, cropX } })
+                }
+              />
+              <RangeField
+                label={t("verticalPosition")}
+                value={theme.avatar.cropY}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(cropY) =>
+                  replace({ avatar: { ...theme.avatar, cropY } })
+                }
+              />
+              <RangeField
+                label={t("zoom")}
+                value={theme.avatar.zoom}
+                min={1}
+                max={3}
+                step={0.1}
+                suffix="×"
+                onChange={(zoom) =>
+                  replace({ avatar: { ...theme.avatar, zoom } })
+                }
+              />
             </ControlSection>
           </>
         ) : null}
+
         {section === "background" ? (
           <>
             <Field label={t("backgroundType")} htmlFor="background-type">
-              <SegmentedControl
-                type="single"
+              <select
+                id="background-type"
                 value={theme.background.type}
-                onValueChange={(value) => {
-                  if (value === "COLOR")
-                    replace({ background: { type: "COLOR" } });
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "SOLID")
+                    replace({
+                      background: {
+                        type: "SOLID",
+                        color: primaryBackgroundColor,
+                        overlay: theme.background.overlay,
+                      },
+                    });
                   if (value === "GRADIENT")
                     replace({
                       background: {
                         type: "GRADIENT",
-                        from: theme.colors.background,
-                        to: theme.colors.accent,
+                        stops: [primaryBackgroundColor, theme.colors.accent],
                         angle: 135,
+                        overlay: theme.background.overlay,
+                      },
+                    });
+                  if (value === "ANIMATED_GRADIENT")
+                    replace({
+                      background: {
+                        type: "ANIMATED_GRADIENT",
+                        stops: [
+                          primaryBackgroundColor,
+                          theme.colors.accent,
+                          theme.colors.button,
+                        ],
+                        angle: 135,
+                        motion: "shift",
+                        speed: 18,
+                        overlay: theme.background.overlay,
                       },
                     });
                 }}
+                className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
               >
-                <SegmentedControlItem value="COLOR">
-                  {t("color")}
-                </SegmentedControlItem>
-                <SegmentedControlItem value="GRADIENT">
-                  {t("gradient")}
-                </SegmentedControlItem>
-              </SegmentedControl>
+                <option value="SOLID">{t("solidColor")}</option>
+                <option value="GRADIENT">{t("gradient")}</option>
+                <option value="ANIMATED_GRADIENT">
+                  {t("animatedGradient")}
+                </option>
+                {theme.background.type === "IMAGE" ? (
+                  <option value="IMAGE">{t("backgroundImage")}</option>
+                ) : null}
+                {theme.background.type === "VIDEO" ? (
+                  <option value="VIDEO">{t("backgroundVideoPro")}</option>
+                ) : null}
+              </select>
             </Field>
             <ColorField
               label={t("backgroundColor")}
-              value={
-                theme.background.type === "GRADIENT"
-                  ? theme.background.from
-                  : theme.colors.background
-              }
-              onChange={(value) =>
-                theme.background.type === "GRADIENT"
-                  ? updateGradient({ from: value })
-                  : replace({ colors: { ...theme.colors, background: value } })
-              }
+              value={primaryBackgroundColor}
+              onChange={(value) => updateBackgroundColor(value)}
             />
-            {theme.background.type === "GRADIENT" ? (
+            {theme.background.type === "GRADIENT" ||
+            theme.background.type === "ANIMATED_GRADIENT" ? (
               <>
                 <ColorField
                   label={t("gradientEnd")}
-                  value={theme.background.to}
-                  onChange={(to) => updateGradient({ to })}
+                  value={theme.background.stops[1] ?? theme.colors.accent}
+                  onChange={(value) => updateBackgroundColor(value, 1)}
                 />
                 <RangeField
                   label={t("angle")}
@@ -287,142 +627,493 @@ export function AppearanceInspector({
                   min={0}
                   max={360}
                   step={5}
-                  onChange={(angle) => updateGradient({ angle })}
+                  suffix="°"
+                  onChange={(angle) => {
+                    if (
+                      theme.background.type !== "GRADIENT" &&
+                      theme.background.type !== "ANIMATED_GRADIENT"
+                    )
+                      return;
+                    replace({ background: { ...theme.background, angle } });
+                  }}
                 />
               </>
             ) : null}
-            <ColorField
-              label={t("textColor")}
-              value={theme.colors.text}
-              onChange={(text) =>
-                replace({ colors: { ...theme.colors, text } })
-              }
-            />
-            <ColorField
-              label={t("accentColor")}
-              value={theme.colors.accent}
-              onChange={(accent) =>
-                replace({ colors: { ...theme.colors, accent } })
-              }
-            />
+            {theme.background.type === "ANIMATED_GRADIENT" ? (
+              <>
+                <Field label={t("motionStyle")} htmlFor="gradient-motion">
+                  <select
+                    id="gradient-motion"
+                    value={theme.background.motion}
+                    onChange={(event) => {
+                      if (theme.background.type !== "ANIMATED_GRADIENT") return;
+                      replace({
+                        background: {
+                          ...theme.background,
+                          motion: event.target.value as "shift" | "waves",
+                        },
+                      });
+                    }}
+                    className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                  >
+                    <option value="shift">{t("gradientShift")}</option>
+                    <option value="waves">{t("gentleWavesPro")}</option>
+                  </select>
+                </Field>
+                <RangeField
+                  label={t("speed")}
+                  value={theme.background.speed}
+                  min={8}
+                  max={40}
+                  step={1}
+                  suffix="s"
+                  onChange={(speed) => {
+                    if (theme.background.type !== "ANIMATED_GRADIENT") return;
+                    replace({ background: { ...theme.background, speed } });
+                  }}
+                />
+              </>
+            ) : null}
+            <ControlSection title={t("overlay")} premium>
+              <ColorField
+                label={t("overlayColor")}
+                value={theme.background.overlay.color}
+                onChange={(color) => replaceOverlay({ color })}
+              />
+              <RangeField
+                label={t("opacity")}
+                value={theme.background.overlay.opacity}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(opacity) => replaceOverlay({ opacity })}
+              />
+              <RangeField
+                label={t("blur")}
+                value={theme.background.overlay.blur}
+                min={0}
+                max={30}
+                step={1}
+                suffix="px"
+                onChange={(blur) => replaceOverlay({ blur })}
+              />
+              <RangeField
+                label={t("glassIntensity")}
+                value={theme.background.overlay.glass}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(glass) => replaceOverlay({ glass })}
+              />
+            </ControlSection>
+            <ControlSection title={t("colorPalette")}>
+              {(
+                [
+                  ["textColor", "text"],
+                  ["mutedTextColor", "mutedText"],
+                  ["accentColor", "accent"],
+                  ["buttonColor", "button"],
+                  ["buttonTextColor", "buttonText"],
+                  ["borderColor", "border"],
+                  ["shadowColor", "shadow"],
+                ] as const
+              ).map(([label, key]) => (
+                <ColorField
+                  key={key}
+                  label={t(label)}
+                  value={theme.colors[key]}
+                  onChange={(value) => replaceColors({ [key]: value })}
+                />
+              ))}
+            </ControlSection>
           </>
         ) : null}
+
         {section === "typography" ? (
           <>
-            <Field label={t("fontFamily")} htmlFor="font-family">
-              <select
-                id="font-family"
-                value={theme.typography.family}
-                onChange={(event) =>
-                  replace({
-                    typography: {
-                      ...theme.typography,
-                      family: event.target
-                        .value as ThemeConfig["typography"]["family"],
-                    },
-                  })
-                }
-                className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
-              >
-                <option value="geist">Geist</option>
-                <option value="serif">{t("serif")}</option>
-                <option value="mono">{t("mono")}</option>
-              </select>
-            </Field>
-            <RangeField
-              label={t("fontScale")}
-              value={theme.typography.scale}
-              min={80}
-              max={130}
-              step={5}
-              suffix="%"
-              onChange={(scale) =>
-                replace({ typography: { ...theme.typography, scale } })
-              }
-            />
-            <Field label={t("fontWeight")} htmlFor="font-weight">
-              <select
-                id="font-weight"
-                value={theme.typography.weight}
-                onChange={(event) =>
-                  replace({
-                    typography: {
-                      ...theme.typography,
-                      weight: event.target
-                        .value as ThemeConfig["typography"]["weight"],
-                    },
-                  })
-                }
-                className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
-              >
-                <option value="regular">{t("regular")}</option>
-                <option value="medium">{t("medium")}</option>
-                <option value="semibold">{t("semibold")}</option>
-              </select>
-            </Field>
+            {(["heading", "body"] as const).map((kind) => {
+              const style = theme.typography[kind];
+              return (
+                <ControlSection
+                  key={kind}
+                  title={kind === "heading" ? t("headings") : t("bodyText")}
+                >
+                  <Field
+                    label={t("fontFamily")}
+                    htmlFor={`${kind}-font-family`}
+                  >
+                    <select
+                      id={`${kind}-font-family`}
+                      value={style.family}
+                      onChange={(event) =>
+                        replace({
+                          typography: {
+                            ...theme.typography,
+                            [kind]: {
+                              ...style,
+                              family: event.target
+                                .value as ThemeConfig["typography"][typeof kind]["family"],
+                            },
+                          },
+                        })
+                      }
+                      className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                    >
+                      {fontOptions.map(([value, label]) => (
+                        <option value={value} key={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <RangeField
+                    label={t("fontScale")}
+                    value={style.scale}
+                    min={75}
+                    max={160}
+                    step={5}
+                    suffix="%"
+                    onChange={(scale) =>
+                      replace({
+                        typography: {
+                          ...theme.typography,
+                          [kind]: { ...style, scale },
+                        },
+                      })
+                    }
+                  />
+                  <Field
+                    label={t("fontWeight")}
+                    htmlFor={`${kind}-font-weight`}
+                  >
+                    <select
+                      id={`${kind}-font-weight`}
+                      value={style.weight}
+                      onChange={(event) =>
+                        replace({
+                          typography: {
+                            ...theme.typography,
+                            [kind]: {
+                              ...style,
+                              weight: Number(event.target.value) as
+                                | 400
+                                | 500
+                                | 600
+                                | 700,
+                            },
+                          },
+                        })
+                      }
+                      className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                    >
+                      <option value="400">400</option>
+                      <option value="500">500</option>
+                      <option value="600">600</option>
+                      <option value="700">700</option>
+                    </select>
+                  </Field>
+                  <RangeField
+                    label={t("letterSpacing")}
+                    value={style.letterSpacing}
+                    min={-0.08}
+                    max={0.2}
+                    step={0.01}
+                    suffix="em"
+                    onChange={(letterSpacing) =>
+                      replace({
+                        typography: {
+                          ...theme.typography,
+                          [kind]: { ...style, letterSpacing },
+                        },
+                      })
+                    }
+                  />
+                  {kind === "body" ? (
+                    <RangeField
+                      label={t("lineHeight")}
+                      value={theme.typography.body.lineHeight}
+                      min={1.2}
+                      max={2}
+                      step={0.05}
+                      onChange={(lineHeight) =>
+                        replace({
+                          typography: {
+                            ...theme.typography,
+                            body: { ...theme.typography.body, lineHeight },
+                          },
+                        })
+                      }
+                    />
+                  ) : null}
+                </ControlSection>
+              );
+            })}
           </>
         ) : null}
+
         {section === "buttons" ? (
           <>
-            <Field label={t("buttonStyle")} htmlFor="button-style">
+            <ControlSection title={t("buttonStyle")}>
+              <Field label={t("style")} htmlFor="button-style">
+                <select
+                  id="button-style"
+                  value={theme.buttons.style}
+                  onChange={(event) =>
+                    replace({
+                      buttons: {
+                        ...theme.buttons,
+                        style: event.target
+                          .value as ThemeConfig["buttons"]["style"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="solid">{t("solid")}</option>
+                  <option value="outline">{t("outline")}</option>
+                  <option value="transparent">{t("transparent")}</option>
+                  <option value="soft">{t("soft")}</option>
+                  <option value="glass">{t("glassPro")}</option>
+                  <option value="neon">{t("neonPro")}</option>
+                </select>
+              </Field>
+              <Field label={t("shape")} htmlFor="button-shape">
+                <select
+                  id="button-shape"
+                  value={theme.buttons.shape}
+                  onChange={(event) =>
+                    replace({
+                      buttons: {
+                        ...theme.buttons,
+                        shape: event.target
+                          .value as ThemeConfig["buttons"]["shape"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="sharp">{t("sharp")}</option>
+                  <option value="rounded">{t("rounded")}</option>
+                  <option value="pill">{t("pill")}</option>
+                  <option value="brutalist">{t("brutalist")}</option>
+                </select>
+              </Field>
+              <RangeField
+                label={t("height")}
+                value={theme.buttons.height}
+                min={40}
+                max={80}
+                step={2}
+                suffix="px"
+                onChange={(height) =>
+                  replace({ buttons: { ...theme.buttons, height } })
+                }
+              />
+              <RangeField
+                label={t("radius")}
+                value={theme.buttons.radius}
+                min={0}
+                max={40}
+                step={1}
+                suffix="px"
+                onChange={(radius) =>
+                  replace({ buttons: { ...theme.buttons, radius } })
+                }
+              />
+              <RangeField
+                label={t("borderWidth")}
+                value={theme.buttons.borderWidth}
+                min={0}
+                max={6}
+                step={1}
+                suffix="px"
+                onChange={(borderWidth) =>
+                  replace({ buttons: { ...theme.buttons, borderWidth } })
+                }
+              />
+            </ControlSection>
+            <ControlSection title={t("interaction")}>
+              <Field label={t("hoverEffect")} htmlFor="hover-effect">
+                <select
+                  id="hover-effect"
+                  value={theme.buttons.hoverEffect}
+                  onChange={(event) =>
+                    replace({
+                      buttons: {
+                        ...theme.buttons,
+                        hoverEffect: event.target
+                          .value as ThemeConfig["buttons"]["hoverEffect"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="none">{t("none")}</option>
+                  <option value="expand">{t("expand")}</option>
+                  <option value="color-shift">{t("colorShift")}</option>
+                  <option value="pulse">{t("pulsePro")}</option>
+                  <option value="neon">{t("neonGlowPro")}</option>
+                </select>
+              </Field>
+              <Field label={t("shadow")} htmlFor="button-shadow">
+                <select
+                  id="button-shadow"
+                  value={theme.buttons.shadow}
+                  onChange={(event) =>
+                    replace({
+                      buttons: {
+                        ...theme.buttons,
+                        shadow: event.target
+                          .value as ThemeConfig["buttons"]["shadow"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="none">{t("none")}</option>
+                  <option value="soft">{t("soft")}</option>
+                  <option value="hard">{t("hardShadow")}</option>
+                  <option value="glow">{t("glow")}</option>
+                </select>
+              </Field>
+              <ColorField
+                label={t("shadowColor")}
+                value={theme.buttons.shadowColor}
+                onChange={(shadowColor) =>
+                  replace({ buttons: { ...theme.buttons, shadowColor } })
+                }
+              />
+            </ControlSection>
+          </>
+        ) : null}
+
+        {section === "effects" ? (
+          <>
+            <ControlSection title={t("vibeLayer")}>
+              <Field label={t("effect")} htmlFor="vibe-layer">
+                <select
+                  id="vibe-layer"
+                  value={theme.effects.layer}
+                  onChange={(event) =>
+                    replace({
+                      effects: {
+                        ...theme.effects,
+                        layer: event.target
+                          .value as ThemeConfig["effects"]["layer"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="none">{t("none")}</option>
+                  <option value="animated-gradient">
+                    {t("animatedGradient")}
+                  </option>
+                  <option value="stars">{t("stars")}</option>
+                  <option value="snow">{t("snow")}</option>
+                  <option value="waves">{t("wavesPro")}</option>
+                  <option value="digital-rain">{t("digitalRainPro")}</option>
+                </select>
+              </Field>
+              <RangeField
+                label={t("density")}
+                value={theme.effects.density}
+                min={1}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(density) =>
+                  replace({ effects: { ...theme.effects, density } })
+                }
+              />
+              <RangeField
+                label={t("speed")}
+                value={theme.effects.speed}
+                min={1}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(speed) =>
+                  replace({ effects: { ...theme.effects, speed } })
+                }
+              />
+              <RangeField
+                label={t("intensity")}
+                value={theme.effects.intensity}
+                min={1}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(intensity) =>
+                  replace({ effects: { ...theme.effects, intensity } })
+                }
+              />
+              <Field
+                label={t("reducedMotionFallback")}
+                htmlFor="reduced-motion"
+              >
+                <select
+                  id="reduced-motion"
+                  value={theme.effects.reducedMotion}
+                  onChange={(event) =>
+                    replace({
+                      effects: {
+                        ...theme.effects,
+                        reducedMotion: event.target
+                          .value as ThemeConfig["effects"]["reducedMotion"],
+                      },
+                    })
+                  }
+                  className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                >
+                  <option value="static">{t("staticFallback")}</option>
+                  <option value="off">{t("disableEffect")}</option>
+                </select>
+              </Field>
+            </ControlSection>
+            <ControlSection title={t("branding")} premium>
+              <label className="flex items-center justify-between gap-4 text-sm font-medium">
+                {t("showBranding")}
+                <input
+                  type="checkbox"
+                  checked={theme.branding.visible}
+                  onChange={(event) =>
+                    replace({ branding: { visible: event.target.checked } })
+                  }
+                  className="size-4 accent-[var(--primary)]"
+                />
+              </label>
+            </ControlSection>
+          </>
+        ) : null}
+
+        {section === "socials" ? (
+          <ControlSection title={t("socialPlacement")}>
+            <Field label={t("placement")} htmlFor="social-placement">
               <select
-                id="button-style"
-                value={theme.buttons.style}
+                id="social-placement"
+                value={theme.layout.socialPlacement}
                 onChange={(event) =>
                   replace({
-                    buttons: {
-                      ...theme.buttons,
-                      style: event.target
-                        .value as ThemeConfig["buttons"]["style"],
+                    layout: {
+                      ...theme.layout,
+                      socialPlacement: event.target
+                        .value as ThemeConfig["layout"]["socialPlacement"],
                     },
                   })
                 }
                 className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
               >
-                <option value="fill">{t("fill")}</option>
-                <option value="outline">{t("outline")}</option>
-                <option value="soft">{t("soft")}</option>
-                <option value="minimal">{t("minimal")}</option>
+                <option value="top">{t("placementTop")}</option>
+                <option value="bottom">{t("placementBottom")}</option>
+                <option value="fixed-footer">{t("placementFooter")}</option>
               </select>
             </Field>
-            <Field label={t("shape")} htmlFor="button-shape">
-              <SegmentedControl
-                type="single"
-                value={theme.buttons.shape}
-                onValueChange={(value) =>
-                  value &&
-                  replace({
-                    buttons: {
-                      ...theme.buttons,
-                      shape: value as ThemeConfig["buttons"]["shape"],
-                    },
-                  })
-                }
-              >
-                <SegmentedControlItem value="square">
-                  {t("square")}
-                </SegmentedControlItem>
-                <SegmentedControlItem value="rounded">
-                  {t("rounded")}
-                </SegmentedControlItem>
-                <SegmentedControlItem value="pill">
-                  {t("pill")}
-                </SegmentedControlItem>
-              </SegmentedControl>
-            </Field>
-            <RangeField
-              label={t("height")}
-              value={theme.buttons.height}
-              min={40}
-              max={72}
-              step={2}
-              suffix="px"
-              onChange={(height) =>
-                replace({ buttons: { ...theme.buttons, height } })
-              }
-            />
-          </>
+          </ControlSection>
         ) : null}
+
         {section === "seo" ? (
           <>
             <Field label={t("pageTitle")} htmlFor="page-title">
@@ -483,62 +1174,6 @@ export function AppearanceInspector({
           </>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function ControlSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h4 className="mb-4 text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-        {title}
-      </h4>
-      <div className="grid gap-5">{children}</div>
-    </section>
-  );
-}
-function RangeField({
-  label,
-  value,
-  min,
-  max,
-  step,
-  suffix = "",
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3 text-sm font-medium">
-        <span>{label}</span>
-        <span className="text-xs font-normal tabular-nums text-muted-foreground">
-          {value}
-          {suffix}
-        </span>
-      </div>
-      <Slider
-        value={[value]}
-        min={min}
-        max={max}
-        step={step}
-        onValueChange={(values) => {
-          const next = values[0];
-          if (typeof next === "number") onChange(next);
-        }}
-      />
     </div>
   );
 }

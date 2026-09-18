@@ -170,7 +170,7 @@ Run: `RUN_DB_TESTS=1 pnpm vitest run tests/integration/database.test.ts tests/do
 - Produces: `requiredThemeFeatures(theme): FeatureKey[]`.
 - Produces: `validateThemeEntitlements(userId, theme): Promise<void>`.
 
-- [ ] **Step 1: Write failing migration tests**
+- [x] **Step 1: Write failing migration tests**
 
 ```ts
 it("migrates a v1 theme without changing its visible colors", () => {
@@ -182,27 +182,27 @@ it("migrates a v1 theme without changing its visible colors", () => {
 });
 ```
 
-- [ ] **Step 2: Run and confirm the missing v2 module failure**
+- [x] **Step 2: Run and confirm the missing v2 module failure**
 
 Run: `pnpm vitest run tests/unit/publishing/theme-v2.test.ts`
 
-- [ ] **Step 3: Implement strict v2 schema and migration**
+- [x] **Step 3: Implement strict v2 schema and migration**
 
 Model bounded unions for page mode, background, overlays, profile layouts, avatar frames, heading/body typography, button shape/style/effect, vibe layer, and branding. Asset-backed backgrounds store media IDs only. Export a single default theme used by onboarding and migration.
 
-- [ ] **Step 4: Map Premium configuration to database feature keys**
+- [x] **Step 4: Map Premium configuration to database feature keys**
 
 Map video to `BACKGROUND_VIDEO`, advanced effects to `ADVANCED_ANIMATIONS`, expanded fonts to `CUSTOM_FONT`, Premium palettes/glass to `PREMIUM_THEMES`, branding removal to `REMOVE_BRANDING`, and live widgets to `LIVE_INTEGRATIONS`. Seed the new feature deterministically.
 
-- [ ] **Step 5: Enforce configuration during publication**
+- [x] **Step 5: Enforce configuration during publication**
 
 Collect missing grants before the publication transaction and throw `AppError("FEATURE_NOT_AVAILABLE", ..., { features })`. Draft JSON remains unchanged. Validate background/cover/avatar asset ownership and readiness.
 
-- [ ] **Step 6: Build the expanded editor controls and preview**
+- [x] **Step 6: Build the expanded editor controls and preview**
 
 Add Profile and Effects sections, palette presets, multi-stop/animated gradient controls, glass controls, profile layouts, avatar frames, separate heading/body typography, button styles/effects, page mode, and vibe layers. Keep client preview immediate and autosave debounced.
 
-- [ ] **Step 7: Verify schema, editor reducer, and publication gates**
+- [x] **Step 7: Verify schema, editor reducer, and publication gates**
 
 Run: `pnpm vitest run tests/unit/publishing tests/unit/editor tests/domain/publication.test.ts && pnpm typecheck`
 

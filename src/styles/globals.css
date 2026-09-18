@@ -135,6 +135,15 @@
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+@keyframes theme-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-theme-gradient {
+  animation: theme-gradient 18s ease-in-out infinite;
+}
+
 * { border-color: var(--border); }
 
 html {

@@ -2,12 +2,21 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { cn } from "~/lib/cn";
-import type { ThemeConfig } from "~/server/publishing/snapshot";
 import {
   AnalyticsBeacon,
   PublicTrackedLink,
 } from "~/app/[username]/analytics-beacon";
+import { cn } from "~/lib/cn";
+import {
+  avatarFrameStyle,
+  avatarRadius,
+  buttonMotionClass,
+  buttonStyle,
+  themeBackgroundStyle,
+  themeFontStack,
+  themeOverlayStyle,
+} from "~/lib/theme-rendering";
+import type { ThemeConfig } from "~/server/publishing/snapshot";
 
 interface PublicSnapshot {
   profile: {
@@ -24,26 +33,6 @@ interface PublicSnapshot {
   blocks: Array<{ id: string; type: string; config: unknown }>;
 }
 
-function buttonAppearance(theme: ThemeConfig) {
-  const radius =
-    theme.buttons.shape === "pill"
-      ? 999
-      : theme.buttons.shape === "square"
-        ? 5
-        : 14;
-  const shadow =
-    theme.buttons.shadow === "strong"
-      ? "0 12px 28px rgb(0 0 0 / .18)"
-      : theme.buttons.shadow === "soft"
-        ? "0 5px 16px rgb(0 0 0 / .1)"
-        : "none";
-  return {
-    minHeight: theme.buttons.height,
-    borderRadius: radius,
-    boxShadow: shadow,
-  };
-}
-
 function PublicBlock({
   block,
   profileId,
@@ -57,7 +46,14 @@ function PublicBlock({
   if (block.type === "HEADING") {
     const Tag = config.level === 1 ? "h1" : config.level === 3 ? "h3" : "h2";
     return (
-      <Tag className="mt-2 w-full text-lg font-semibold tracking-[-0.02em]">
+      <Tag
+        className="mt-2 w-full text-lg"
+        style={{
+          fontFamily: themeFontStack(theme.typography.heading.family),
+          fontWeight: theme.typography.heading.weight,
+          letterSpacing: `${theme.typography.heading.letterSpacing}em`,
+        }}
+      >
         {String(config.text)}
       </Tag>
     );
@@ -121,15 +117,10 @@ function PublicBlock({
       blockId={block.id}
       href={String(config.url)}
       className={cn(
-        "group flex w-full items-center justify-between gap-3 px-4 text-left font-medium transition-[transform,opacity,box-shadow] hover:-translate-y-0.5",
-        theme.buttons.style === "outline" &&
-          "border-2 border-current bg-transparent",
-        theme.buttons.style === "soft" && "bg-current/10",
-        theme.buttons.style === "minimal" &&
-          "border-b border-current/25 bg-transparent",
-        theme.buttons.style === "fill" && "bg-current/12",
+        "group flex w-full items-center justify-between gap-3 px-4 text-left font-medium transition-[transform,filter,box-shadow,background-color] duration-200",
+        buttonMotionClass(theme),
       )}
-      style={buttonAppearance(theme)}
+      style={buttonStyle(theme)}
     >
       <span className="min-w-0">
         <span className="block truncate">{String(config.title)}</span>
@@ -152,46 +143,44 @@ export function PublicProfile({
   profileId: string;
 }) {
   const { theme, profile } = snapshot;
-  const background =
-    theme.background.type === "GRADIENT"
-      ? `linear-gradient(${theme.background.angle}deg, ${theme.background.from}, ${theme.background.to})`
-      : theme.colors.background;
-  const fontFamily =
-    theme.typography.family === "serif"
-      ? "ui-serif, Georgia, serif"
-      : theme.typography.family === "mono"
-        ? "ui-monospace, monospace"
-        : "var(--font-geist-sans), sans-serif";
-  const fontWeight =
-    theme.typography.weight === "regular"
-      ? 400
-      : theme.typography.weight === "semibold"
-        ? 600
-        : 500;
-  const avatarRadius =
-    theme.layout.avatarShape === "circle"
-      ? "999px"
-      : theme.layout.avatarShape === "square"
-        ? "8px"
-        : "20px";
+  const avatarStyle = avatarFrameStyle(theme);
+  const profileHorizontal = theme.layout.profileLayout === "left-card";
+
   return (
     <main
       id="main-content"
       tabIndex={-1}
-      className="min-h-dvh"
+      data-theme-mode={theme.mode.strategy}
+      data-vibe-layer={theme.effects.layer}
+      className={cn(
+        "relative min-h-dvh overflow-hidden",
+        theme.background.type === "ANIMATED_GRADIENT" &&
+          "animate-theme-gradient",
+      )}
       style={{
-        background,
+        ...themeBackgroundStyle(theme),
         color: theme.colors.text,
-        fontFamily,
-        fontWeight,
-        lineHeight: theme.typography.lineHeight,
-        fontSize: `${theme.typography.scale}%`,
+        fontFamily: themeFontStack(theme.typography.body.family),
+        fontWeight: theme.typography.body.weight,
+        lineHeight: theme.typography.body.lineHeight,
+        fontSize: `${theme.typography.body.scale}%`,
       }}
     >
       <AnalyticsBeacon profileId={profileId} />
       <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0"
+        style={themeOverlayStyle(theme)}
+      />
+      {theme.effects.layer === "stars" || theme.effects.layer === "snow" ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_20%,currentColor_0_1px,transparent_1.5px)] bg-[size:28px_28px] opacity-25"
+        />
+      ) : null}
+      <div
         className={cn(
-          "mx-auto flex min-h-dvh flex-col",
+          "relative mx-auto flex min-h-dvh flex-col",
           theme.layout.alignment === "center"
             ? "items-center text-center"
             : "items-start text-left",
@@ -204,36 +193,56 @@ export function PublicProfile({
       >
         <header
           className={cn(
-            "mb-2 flex w-full flex-col gap-3",
-            theme.layout.alignment === "center"
-              ? "items-center text-center"
-              : "items-start text-left",
+            "mb-2 flex w-full gap-4",
+            profileHorizontal
+              ? "items-center text-left"
+              : "flex-col items-center text-center",
+            theme.layout.profileLayout === "banner" &&
+              "rounded-2xl border border-current/15 bg-current/5 p-5 backdrop-blur-sm",
           )}
         >
-          {profile.avatarUrl ? (
-            <Image
-              src={`/api/assets/${profile.avatarUrl}`}
-              width={88}
-              height={88}
-              unoptimized
-              alt=""
-              className="size-20 object-cover"
-              style={{ borderRadius: avatarRadius }}
-            />
-          ) : (
-            <div
-              className="flex size-20 items-center justify-center border border-current/15 bg-current/10 text-xl font-semibold"
-              style={{ borderRadius: avatarRadius }}
-            >
-              {profile.displayName.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+          <div style={avatarStyle} className="shrink-0">
+            {profile.avatarUrl ? (
+              <Image
+                src={`/api/assets/${profile.avatarUrl}`}
+                width={theme.avatar.size}
+                height={theme.avatar.size}
+                unoptimized
+                alt=""
+                className="size-full object-cover"
+                style={{
+                  borderRadius: avatarRadius(theme),
+                  objectPosition: `${theme.avatar.cropX}% ${theme.avatar.cropY}%`,
+                  transform: `scale(${theme.avatar.zoom})`,
+                }}
+              />
+            ) : (
+              <div
+                className="flex size-full items-center justify-center bg-current/10 text-xl font-semibold"
+                style={{ borderRadius: avatarRadius(theme) }}
+              >
+                {profile.displayName.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+          </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-[-0.025em]">
+            <h1
+              className="text-xl"
+              style={{
+                fontFamily: themeFontStack(theme.typography.heading.family),
+                fontWeight: theme.typography.heading.weight,
+                letterSpacing: `${theme.typography.heading.letterSpacing}em`,
+              }}
+            >
               {profile.displayName}
             </h1>
             {profile.bio ? (
-              <p className="mt-1 max-w-md text-sm opacity-70">{profile.bio}</p>
+              <p
+                className="mt-1 max-w-md text-sm"
+                style={{ color: theme.colors.mutedText }}
+              >
+                {profile.bio}
+              </p>
             ) : null}
           </div>
         </header>
@@ -245,11 +254,13 @@ export function PublicProfile({
             theme={theme}
           />
         ))}
-        <footer className="mt-auto pt-10 text-[11px] opacity-45">
-          <Link href="/" className="transition-opacity hover:opacity-80">
-            OlnkTR
-          </Link>
-        </footer>
+        {theme.branding.visible ? (
+          <footer className="mt-auto pt-10 text-[11px] opacity-45">
+            <Link href="/" className="transition-opacity hover:opacity-80">
+              OlnkTR
+            </Link>
+          </footer>
+        ) : null}
       </div>
     </main>
   );
