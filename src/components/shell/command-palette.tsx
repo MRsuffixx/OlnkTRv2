@@ -63,7 +63,7 @@ export function CommandPalette({ profileUrl, pageId }: { profileUrl?: string; pa
   async function switchLanguage() {
     setOpen(false);
     await setLocalePreference(locale === "tr" ? "en" : "tr");
-    router.refresh();
+    window.location.assign(window.location.href);
   }
 
   return (

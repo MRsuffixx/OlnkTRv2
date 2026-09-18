@@ -39,7 +39,7 @@
 - Produces: `SUPPORTED_LOCALES`, `DEFAULT_LOCALE`, `LOCALE_COOKIE_NAME`, `parseLocale(value)`.
 - Produces: `setLocalePreference(value): Promise<{ locale: SupportedLocale }>`.
 
-- [ ] **Step 1: Write the failing locale unit test**
+- [x] **Step 1: Write the failing locale unit test**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -55,11 +55,11 @@ describe("locale configuration", () => {
 });
 ```
 
-- [ ] **Step 2: Run the unit test and confirm the missing-module failure**
+- [x] **Step 2: Run the unit test and confirm the missing-module failure**
 
 Run: `pnpm vitest run tests/unit/i18n/locale.test.ts`
 
-- [ ] **Step 3: Implement shared locale configuration**
+- [x] **Step 3: Implement shared locale configuration**
 
 ```ts
 export const SUPPORTED_LOCALES = ["en", "tr"] as const;
@@ -71,11 +71,11 @@ export function parseLocale(value: unknown): SupportedLocale {
 }
 ```
 
-- [ ] **Step 4: Make the root provider explicit and make client switching reliable**
+- [x] **Step 4: Make the root provider explicit and make client switching reliable**
 
 Pass `locale={locale}` and `key={locale}` to `NextIntlClientProvider`. After the server action persists the cookie and user preference, locale controls use `window.location.assign(window.location.href)` so the persistent root layout cannot retain the old provider.
 
-- [ ] **Step 5: Write and run Playwright locale coverage**
+- [x] **Step 5: Write and run Playwright locale coverage**
 
 ```ts
 test("switches English and Turkish across a hard navigation", async ({ page }) => {
@@ -479,4 +479,3 @@ Run app, worker, PostgreSQL, Redis, and Mailpit; verify readiness, one backgroun
 - [ ] **Step 7: Perform visual and accessibility audits**
 
 Inspect English/Turkish, light/dark/system, reduced motion, keyboard operation, and 375/390/768/1024/1280/1440 widths. Confirm there are no dead controls, untranslated significant strings, horizontal page overflow, inaccessible dialogs, or public-page console errors.
-

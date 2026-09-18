@@ -2,7 +2,6 @@
 
 import { Globe2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { setLocalePreference } from "~/app/actions/preferences";
@@ -12,13 +11,12 @@ import { IconButton } from "~/components/ui/icon-button";
 export function LocaleMenu() {
   const locale = useLocale();
   const t = useTranslations("common");
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function select(nextLocale: string) {
     startTransition(async () => {
       await setLocalePreference(nextLocale);
-      router.refresh();
+      window.location.assign(window.location.href);
     });
   }
 

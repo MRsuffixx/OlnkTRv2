@@ -48,7 +48,7 @@ export default async function RootLayout({
         >
           {common("skipToContent")}
         </a>
-        <NextIntlClientProvider>
+        <NextIntlClientProvider key={locale} locale={locale}>
           <AppProviders>{children}</AppProviders>
         </NextIntlClientProvider>
       </body>

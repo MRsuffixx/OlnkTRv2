@@ -6,13 +6,20 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import {
+  LOCALE_COOKIE_NAME,
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+} from "~/i18n/config";
 
-const localeSchema = z.enum(["en", "tr"]);
+const localeSchema = z.enum(SUPPORTED_LOCALES);
 
-export async function setLocalePreference(value: string) {
+export async function setLocalePreference(
+  value: string,
+): Promise<{ locale: SupportedLocale }> {
   const locale = localeSchema.parse(value);
   const cookieStore = await cookies();
-  cookieStore.set("olnk-locale", locale, {
+  cookieStore.set(LOCALE_COOKIE_NAME, locale, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -25,4 +32,6 @@ export async function setLocalePreference(value: string) {
     await db.user.updateMany({ where: { id: session.user.id }, data: { locale } });
   }
   revalidatePath("/", "layout");
+
+  return { locale };
 }

@@ -19,7 +19,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "worker": "tsx worker/index.ts",
     "worker:health": "tsx worker/healthcheck.ts"
   },
