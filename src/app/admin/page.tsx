@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowLeft,
+  CalendarPlus,
   Flag,
   Search,
   ShieldCheck,
@@ -16,6 +17,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { auth } from "~/server/auth";
+import { addUtcCalendarMonths } from "~/server/billing/manual-subscription";
 import { hasRole } from "~/server/security/authorization";
 import { api } from "~/trpc/server";
 
@@ -95,6 +97,17 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       featureKey: String(form.get("featureKey")),
       enabled: String(form.get("enabled")) === "true",
       limit: raw === "" ? null : Number(raw),
+      confirmation: "CONFIRM",
+    });
+    revalidatePath("/admin");
+  }
+  async function grantPremium(form: FormData) {
+    "use server";
+    if (!confirmed(form)) return;
+    await api.admin.grantPremiumMonths({
+      userId: String(form.get("userId")),
+      months: Number(form.get("months")),
+      reason: String(form.get("reason")),
       confirmation: "CONFIRM",
     });
     revalidatePath("/admin");
@@ -200,6 +213,89 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                       </Button>
                     </form>
                   </div>
+                  <details className="mt-4 border-t border-border-subtle pt-3">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-foreground marker:content-none">
+                      <CalendarPlus className="size-4 text-primary" />
+                      {t("manualPremium")}
+                      {user.subscriptions.find(
+                        (subscription) => subscription.provider === "manual",
+                      )?.currentPeriodEnd ? (
+                        <Badge variant="primary" className="ml-auto">
+                          {t("activeUntil", {
+                            date: date.format(
+                              user.subscriptions.find(
+                                (subscription) =>
+                                  subscription.provider === "manual",
+                              )!.currentPeriodEnd!,
+                            ),
+                          })}
+                        </Badge>
+                      ) : null}
+                    </summary>
+                    <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">
+                      {t("manualPremiumDescription")}
+                    </p>
+                    <form
+                      action={grantPremium}
+                      className="mt-3 grid gap-2 lg:grid-cols-[minmax(10rem,14rem)_1fr_10rem_auto]"
+                    >
+                      <input type="hidden" name="userId" value={user.id} />
+                      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                        {t("months")}
+                        <select
+                          name="months"
+                          defaultValue="1"
+                          className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm text-foreground shadow-xs focus:border-primary focus:ring-3 focus:ring-primary/12 focus:outline-none"
+                        >
+                          {Array.from({ length: 24 }, (_, index) => {
+                            const months = index + 1;
+                            const manualSubscription = user.subscriptions.find(
+                              (subscription) =>
+                                subscription.provider === "manual",
+                            );
+                            const now = new Date();
+                            const base =
+                              manualSubscription?.currentPeriodEnd &&
+                              manualSubscription.currentPeriodEnd > now
+                                ? manualSubscription.currentPeriodEnd
+                                : now;
+                            return (
+                              <option key={months} value={months}>
+                                {t("monthOption", {
+                                  count: months,
+                                  date: date.format(
+                                    addUtcCalendarMonths(base, months),
+                                  ),
+                                })}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
+                      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                        {t("reason")}
+                        <Input
+                          name="reason"
+                          minLength={3}
+                          maxLength={300}
+                          placeholder={t("manualPremiumReason")}
+                          required
+                        />
+                      </label>
+                      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+                        {t("confirmation")}
+                        <Input
+                          name="confirmation"
+                          placeholder={t("typeConfirm")}
+                          pattern="CONFIRM"
+                          required
+                        />
+                      </label>
+                      <Button className="self-end" variant="primary">
+                        {t("grantPremium")}
+                      </Button>
+                    </form>
+                  </details>
                   {user.profiles.length ? (
                     <div className="mt-4 divide-y divide-border-subtle border-t border-border-subtle">
                       {user.profiles.map((profile) => (

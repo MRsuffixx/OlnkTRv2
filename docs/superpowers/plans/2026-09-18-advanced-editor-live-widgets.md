@@ -106,7 +106,7 @@ Run: `pnpm vitest run tests/unit/i18n tests/unit/i18n/catalogs.test.ts && PLAYWR
 - Produces: `grantManualPremium({ actorId, userId, months, reason }): Promise<Subscription>`.
 - Produces: `admin.grantPremiumMonths` requiring `PLAN_MANAGE` and confirmation `CONFIRM`.
 
-- [ ] **Step 1: Write failing calendar arithmetic tests**
+- [x] **Step 1: Write failing calendar arithmetic tests**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -120,15 +120,15 @@ describe("manual subscription month arithmetic", () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and confirm the missing implementation**
+- [x] **Step 2: Run the focused test and confirm the missing implementation**
 
 Run: `pnpm vitest run tests/domain/manual-subscription.test.ts`
 
-- [ ] **Step 3: Implement the transactional billing service**
+- [x] **Step 3: Implement the transactional billing service**
 
 Use a serializable Prisma transaction. Read the target user and Premium plan, find the `manual` subscription, choose `base = max(now, currentPeriodEnd)`, add 1–24 UTC calendar months, upsert the subscription as `ACTIVE`, append `SubscriptionEvent(type: "manual.granted")`, and append `AuditLog(action: "SUBSCRIPTION_MANUAL_GRANT")`. Retry serialization conflicts up to three times.
 
-- [ ] **Step 4: Add the protected admin procedure and UI**
+- [x] **Step 4: Add the protected admin procedure and UI**
 
 The procedure schema is:
 
@@ -143,7 +143,7 @@ z.object({
 
 The user detail row receives a month selector, required reason, calculated explanation, and confirmed submit action. The current expiry and resulting expiry render with `Intl.DateTimeFormat`.
 
-- [ ] **Step 5: Add concurrency and coexistence database tests**
+- [x] **Step 5: Add concurrency and coexistence database tests**
 
 Run two simultaneous one-month grants and assert the final manual expiry contains both months, two subscription events exist, and an unrelated external active subscription is unchanged.
 
