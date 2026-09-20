@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { changeUsername, completeOnboarding, updateProfile } from "~/server/profile/service";
+import { changeUsername, completeOnboarding, setProfileAvatar, updateProfile } from "~/server/profile/service";
 import { usernameSchema } from "~/server/profile/username";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
@@ -29,6 +29,9 @@ export const profileRouter = createTRPCRouter({
   update: protectedProcedure
     .input(z.object({ profileId: z.string().cuid(), displayName: z.string().min(1).max(80), bio: z.string().max(500).nullable().optional() }))
     .mutation(({ ctx, input }) => updateProfile(ctx.session.user.id, input)),
+  setAvatar: protectedProcedure
+    .input(z.object({ profileId: z.string().cuid(), assetId: z.string().cuid().nullable() }))
+    .mutation(({ ctx, input }) => setProfileAvatar(ctx.session.user.id, input.profileId, input.assetId)),
   changeUsername: protectedProcedure
     .input(z.object({ profileId: z.string().cuid(), username: z.string() }))
     .mutation(({ ctx, input }) => changeUsername(ctx.session.user.id, input)),

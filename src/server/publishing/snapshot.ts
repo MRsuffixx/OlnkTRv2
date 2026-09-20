@@ -23,11 +23,11 @@ export const pageDraftUpdateSchema = z.object({
   seo: seoConfigSchema,
 });
 export type PageDraftUpdateInput = z.infer<typeof pageDraftUpdateSchema>;
-const storedSnapshotSchema=z.object({schemaVersion:z.literal(1),profile:z.object({username:z.string(),displayName:z.string(),bio:z.string().nullable(),avatarUrl:z.string().nullable()}),page:z.object({title:z.string().nullable(),description:z.string().nullable(),visibility:z.enum(["PUBLIC","UNLISTED","PRIVATE"])}),theme:themeConfigSchema,blocks:z.array(z.object({id:z.string(),type:z.string(),config:z.unknown()})),generatedAt:z.string().datetime()});
+const storedSnapshotSchema=z.object({schemaVersion:z.literal(1),profile:z.object({username:z.string(),displayName:z.string(),bio:z.string().nullable(),avatarUrl:z.string().nullable(),verified:z.boolean().default(false)}),page:z.object({title:z.string().nullable(),description:z.string().nullable(),visibility:z.enum(["PUBLIC","UNLISTED","PRIVATE"])}),theme:themeConfigSchema,blocks:z.array(z.object({id:z.string(),type:z.string(),config:z.unknown()})),generatedAt:z.string().datetime()});
 export function parsePublicationSnapshot(value:unknown){const parsed=storedSnapshotSchema.parse(value);return{...parsed,blocks:parsed.blocks.map(block=>({...block,config:parseBlockConfig(block.type,block.config)}))};}
 
 interface DraftInput {
-  profile: { username: string; displayName: string; bio: string | null; avatarUrl: string | null };
+  profile: { username: string; displayName: string; bio: string | null; avatarUrl: string | null; verified?: boolean };
   page: { title: string | null; description: string | null; visibility: "PUBLIC" | "UNLISTED" | "PRIVATE" };
   theme: unknown;
   blocks: Array<{ id: string; type: string; enabled: boolean; position: number; config: unknown }>;

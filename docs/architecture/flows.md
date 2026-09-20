@@ -34,6 +34,25 @@ Analytics uses `browser beacon -> rate-limited route -> BullMQ -> event + daily 
 
 ```mermaid
 flowchart LR
+  U[Short image/video upload] --> A[Private original MediaAsset]
+  A --> Q[Media queue]
+  Q --> F[FFprobe + bounded FFmpeg]
+  F --> D[H.264 loop + WebP poster]
+  D --> R[READY derivatives]
+```
+
+```mermaid
+flowchart LR
+  V[Public live widget] --> C{Fresh cache?}
+  C -->|yes| P[Normalized payload]
+  C -->|no| Q[Enqueue refresh]
+  Q --> S[Return stale or unavailable immediately]
+  Q --> W[Fixed-host provider adapter]
+  W --> C
+```
+
+```mermaid
+flowchart LR
   R[Deletion requested] --> M[Email one-time confirmation]
   M --> C[Account DELETION_PENDING + revoke sessions]
   C --> Q[Delayed maintenance job]

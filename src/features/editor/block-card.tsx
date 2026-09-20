@@ -11,11 +11,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { IconButton } from "~/components/ui/icon-button";
 import { cn } from "~/lib/cn";
 import type { EditorBlock } from "./editor-reducer";
+import { blockTitleKeys } from "./block-labels";
 
 function summary(block: EditorBlock) {
   if (!block.config || typeof block.config !== "object") return block.type;
   const config = block.config as Record<string, unknown>;
-  const value = config.url ?? config.text ?? (Array.isArray(config.items) ? `${config.items.length} items` : block.type);
+  const value = config.url ?? config.href ?? config.text ?? config.question ?? config.label ?? config.username ?? config.channel ?? config.resourceUrl ?? config.discordUserId ?? (Array.isArray(config.items) ? `${config.items.length} items` : block.type);
   return String(value);
 }
 
@@ -24,7 +25,7 @@ export function BlockCard({ block, index, selected, onSelect, onDuplicate, onTog
   const t = useTranslations("editor");
   const common = useTranslations("common");
   const config = block.config && typeof block.config === "object" ? block.config as Record<string, unknown> : {};
-  const title = String(config.title ?? config.text ?? t(`block${block.type.charAt(0)}${block.type.slice(1).toLowerCase()}` as "blockLink"));
+  const title = String(config.title ?? config.text ?? config.question ?? t(blockTitleKeys[block.type as keyof typeof blockTitleKeys] ?? "editBlock"));
   return (
     <div ref={ref} data-selected={selected} className={cn("group flex items-center gap-2 rounded-md border bg-surface-raised p-2 shadow-xs transition-[border-color,box-shadow,opacity] duration-150", selected ? "border-primary/45 ring-2 ring-primary/8" : "border-border hover:border-border-strong", !block.enabled && "opacity-60", isDragging && "z-20 opacity-70 shadow-md")}>
       <button ref={handleRef} type="button" aria-label={t("dragBlock")} className="flex size-8 shrink-0 cursor-grab items-center justify-center rounded-sm text-muted-foreground hover:bg-surface-hover active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"><GripVertical className="size-4" /></button>

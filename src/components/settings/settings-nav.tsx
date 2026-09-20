@@ -12,6 +12,7 @@ const items = [
   ["security", "/dashboard/settings/security"],
   ["notifications", "/dashboard/settings/notifications"],
   ["appearance", "/dashboard/settings/appearance"],
+  ["integrations", "/dashboard/settings/integrations"],
 ] as const;
 
 export function SettingsNav() {

@@ -33,11 +33,14 @@ test("passwordless onboarding, editing, publishing, and media upload", async ({ 
   await page.goto("/login");
   await page.getByLabel("Email address").fill(email);
   await page.getByRole("button", { name: "Continue with email" }).click();
-  await expect(page).toHaveURL(/verify-request/);
+  // A cold development server can compile the Auth.js server action after the
+  // form submits. Wait for the observable navigation rather than Playwright's
+  // shorter assertion default.
+  await expect(page).toHaveURL(/verify-request/, { timeout: 15_000 });
 
   const magicLink = await waitForMagicLink(request, email);
   await page.goto(magicLink);
-  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page).toHaveURL(/\/onboarding$/, { timeout: 15_000 });
 
   const replayPage = await browser.newPage();
   await replayPage.goto(magicLink);
@@ -46,9 +49,11 @@ test("passwordless onboarding, editing, publishing, and media upload", async ({ 
 
   await page.getByLabel("Choose your username").fill(username);
   await page.getByLabel("Display name").fill("E2E Creator");
-  await expect(page.getByText("Username is available")).toBeVisible();
+  await expect(page.getByText("Username is available")).toBeVisible({
+    timeout: 15_000,
+  });
   await page.getByRole("button", { name: "Create my page" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 15_000 });
   await expect(page.getByRole("heading", { name: /E2E/ })).toBeVisible();
 
   await page.goto("/dashboard/page");
@@ -61,16 +66,19 @@ test("passwordless onboarding, editing, publishing, and media upload", async ({ 
   await page.getByLabel("Title").fill("Example portfolio");
   await page.getByLabel("URL").fill("https://example.com/portfolio");
   await draftSaved;
-  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-
-  const published = page.waitForResponse((response) =>
-    response.request().method() === "POST" && response.url().includes("/dashboard/page") && response.ok(),
+  await expect(page.locator('[aria-live="polite"]').filter({ hasText: "Saved" })).toHaveText(
+    "Saved",
   );
+
   await page.getByRole("button", { name: "Publish" }).click();
-  await published;
+  await expect(page.getByText("Your page is live.")).toBeVisible({
+    timeout: 15_000,
+  });
 
   await page.goto(`/${username}`);
-  await expect(page.getByRole("heading", { name: "E2E Creator" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "E2E Creator" })).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(page.getByRole("link", { name: "Example portfolio" })).toHaveAttribute("href", "https://example.com/portfolio");
 
   await page.goto("/dashboard/media");

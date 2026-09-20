@@ -5,6 +5,7 @@ import { db } from "~/server/db";
 import { getUserEntitlements } from "~/server/entitlements/service";
 import { AppError } from "~/server/errors";
 import { buildPublicationSnapshot } from "./snapshot";
+import { missingBlockFeatures } from "./block-entitlements";
 import { missingThemeFeatures } from "./theme-entitlements";
 import { migrateThemeConfig } from "./theme-v2";
 
@@ -14,14 +15,19 @@ export async function publishPage(userId: string, pageId: string) {
     include: {
       profile: { include: { avatarAsset: true } },
       draft: true,
-      blocks: true,
+      blocks: { where: { deletedAt: null } },
     },
   });
   if (!page?.draft) throw new AppError("NOT_FOUND", "Page draft not found");
 
   const theme = migrateThemeConfig(page.draft.themeConfig);
   const { grants } = await getUserEntitlements(userId);
-  const missingFeatures = missingThemeFeatures(theme, grants);
+  const missingFeatures = [
+    ...new Set([
+      ...missingThemeFeatures(theme, grants),
+      ...missingBlockFeatures(page.blocks, grants),
+    ]),
+  ];
   if (missingFeatures.length) {
     throw new AppError(
       "FEATURE_NOT_AVAILABLE",
@@ -59,6 +65,7 @@ export async function publishPage(userId: string, pageId: string) {
       displayName: page.profile.displayName,
       bio: page.profile.bio,
       avatarUrl: page.profile.avatarAsset?.id ?? null,
+      verified: page.profile.verified,
     },
     page: {
       title: page.title,
@@ -131,7 +138,10 @@ export async function publishPage(userId: string, pageId: string) {
       }
     }
   }
-  await cacheDelete(cacheKeys.publicProfile(page.profile.username));
+  await cacheDelete(
+    cacheKeys.publicProfile(page.profile.username),
+    ...page.blocks.flatMap((block) => [cacheKeys.publicWidget(block.id), cacheKeys.publicWidgetStale(block.id)]),
+  );
   return version;
 }
 

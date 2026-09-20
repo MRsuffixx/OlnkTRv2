@@ -1,0 +1,18 @@
+export const blockTitleKeys = {
+  LINK: "blockLink",
+  TEXT: "blockText",
+  HEADING: "blockHeading",
+  DIVIDER: "blockDivider",
+  IMAGE: "blockImage",
+  SOCIALS: "blockSocials",
+  HIGHLIGHT: "blockHighlight",
+  COUNTDOWN: "blockCountdown",
+  VISITOR_COUNTER: "blockVisitorCounter",
+  SUPPORT: "blockSupport",
+  POLL: "blockPoll",
+  DISCORD: "blockDiscord",
+  GITHUB: "blockGithub",
+  SPOTIFY: "blockSpotify",
+  YOUTUBE: "blockYoutube",
+  TWITCH: "blockTwitch",
+} as const;

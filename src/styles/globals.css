@@ -144,6 +144,77 @@
   animation: theme-gradient 18s ease-in-out infinite;
 }
 
+@keyframes vibe-drift {
+  0%, 100% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50% { transform: translate3d(4%, 3%, 0) scale(1.08); }
+}
+
+@keyframes vibe-fall {
+  from { transform: translate3d(0, -14vh, 0) rotate(0deg); }
+  to { transform: translate3d(22px, 114vh, 0) rotate(240deg); }
+}
+
+@keyframes vibe-twinkle {
+  0%, 100% { opacity: calc(var(--effect-opacity) * .45); transform: scale(.75); }
+  50% { opacity: var(--effect-opacity); transform: scale(1.25); }
+}
+
+@keyframes vibe-rain {
+  from { transform: translateY(-24vh); opacity: 0; }
+  12% { opacity: var(--effect-opacity); }
+  to { transform: translateY(124vh); opacity: 0; }
+}
+
+.olnk-vibe-blob {
+  position: absolute;
+  width: 48vmax;
+  height: 48vmax;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--olnk-page-accent) 18%, transparent);
+  filter: blur(70px);
+  opacity: .5;
+  animation: vibe-drift 16s ease-in-out infinite;
+}
+
+.olnk-vibe-blob-a { inset: -24vmax auto auto -18vmax; }
+.olnk-vibe-blob-b { inset: 28% -25vmax auto auto; animation-delay: -6s; }
+.olnk-vibe-blob-c { inset: auto auto -28vmax 18%; animation-delay: -11s; }
+
+.olnk-vibe-particle,
+.olnk-digital-rain {
+  position: absolute;
+  left: var(--effect-x);
+  top: var(--effect-y);
+  opacity: var(--effect-opacity);
+}
+
+.olnk-vibe-particle {
+  width: var(--effect-size);
+  height: var(--effect-size);
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.olnk-star {
+  box-shadow: 0 0 8px currentColor;
+  animation: vibe-twinkle var(--effect-duration) ease-in-out var(--effect-delay) infinite;
+}
+
+.olnk-snow {
+  top: -10vh;
+  animation: vibe-fall var(--effect-duration) linear var(--effect-delay) infinite;
+}
+
+.olnk-digital-rain {
+  top: -20vh;
+  color: var(--olnk-page-accent);
+  font: 600 10px/1 var(--font-space-mono), monospace;
+  writing-mode: vertical-rl;
+  letter-spacing: 5px;
+  text-shadow: 0 0 8px currentColor;
+  animation: vibe-rain var(--effect-duration) linear var(--effect-delay) infinite;
+}
+
 * { border-color: var(--border); }
 
 html {

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
+import { api } from "~/trpc/react";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -37,7 +38,14 @@ export function Editor({
   profile,
 }: {
   initialDocument: EditorDocument;
-  profile: { username: string; displayName: string; bio: string | null };
+  profile: {
+    id: string;
+    username: string;
+    displayName: string;
+    bio: string | null;
+    avatarAssetId: string | null;
+    verified: boolean;
+  };
 }) {
   const [state, dispatch] = useReducer(
     editorReducer,
@@ -46,9 +54,11 @@ export function Editor({
   );
   const [busy, setBusy] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [profilePreview, setProfilePreview] = useState(profile);
   const router = useRouter();
   const t = useTranslations("editor");
   const common = useTranslations("common");
+  const setAvatar = api.profile.setAvatar.useMutation();
   const selectedBlock =
     state.document.blocks.find((block) => block.id === state.selectedBlockId) ??
     null;
@@ -214,7 +224,7 @@ export function Editor({
           </div>
           <PagePreview
             document={state.document}
-            profile={profile}
+            profile={profilePreview}
             device={state.previewDevice}
             zoom={state.zoom}
           />
@@ -254,6 +264,7 @@ export function Editor({
             <AppearanceInspector
               section={state.section}
               document={state.document}
+              profile={profilePreview}
               onThemeChange={(theme) =>
                 dispatch({ type: "theme.replaced", theme })
               }
@@ -261,6 +272,27 @@ export function Editor({
                 dispatch({ type: "page.updated", patch })
               }
               onSeoChange={(seo) => dispatch({ type: "seo.updated", seo })}
+              onAvatarChange={async (assetId) => {
+                const previous = profilePreview.avatarAssetId;
+                setProfilePreview((current) => ({
+                  ...current,
+                  avatarAssetId: assetId,
+                }));
+                try {
+                  await setAvatar.mutateAsync({
+                    profileId: profilePreview.id,
+                    assetId,
+                  });
+                } catch (error) {
+                  setProfilePreview((current) => ({
+                    ...current,
+                    avatarAssetId: previous,
+                  }));
+                  toast.error(
+                    error instanceof Error ? error.message : common("retry"),
+                  );
+                }
+              }}
             />
           )}
           {state.saveStatus === "error" ? (
