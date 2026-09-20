@@ -19,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     email: session.user.email ?? "",
     image: session.user.image,
     plan: entitlements.plan === "FREE" ? "OlnkTR Free" : `OlnkTR ${entitlements.plan}`,
+    role: session.user.role,
   };
 
   return (

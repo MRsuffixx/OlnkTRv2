@@ -1,8 +1,9 @@
 import {
   Activity,
   ArrowLeft,
-  CalendarPlus,
+  ChevronRight,
   Flag,
+  KeyRound,
   Search,
   ShieldCheck,
   UserRoundCog,
@@ -13,12 +14,15 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { Logo } from "~/components/shared/logo";
+import { Avatar } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { auth } from "~/server/auth";
-import { addUtcCalendarMonths } from "~/server/billing/manual-subscription";
-import { hasRole } from "~/server/security/authorization";
+import {
+  hasPermission,
+  hasRole,
+} from "~/server/security/authorization";
 import { api } from "~/trpc/server";
 
 function confirmed(form: FormData) {
@@ -27,7 +31,8 @@ function confirmed(form: FormData) {
 
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const session = await auth();
-  if (!session || !hasRole(session.user.role, "ADMIN")) redirect("/dashboard");
+  if (!session || !hasRole(session.user.role, "MODERATOR"))
+    redirect("/dashboard");
   const [t, common, locale, params] = await Promise.all([
     getTranslations("admin"),
     getTranslations("common"),
@@ -35,34 +40,32 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     searchParams,
   ]);
   const query = typeof params.q === "string" ? params.q : "";
-  const [users, flags, reserved, catalog, jobs, audit] = await Promise.all([
-    api.admin.users({ query }),
-    api.admin.flags(),
-    api.admin.reservedUsernames(),
-    api.admin.catalog(),
-    api.admin.jobs(),
-    api.admin.audit(),
+  const role = ["USER", "MODERATOR", "ADMIN"].includes(String(params.role))
+    ? (String(params.role) as "USER" | "MODERATOR" | "ADMIN")
+    : undefined;
+  const status = ["ACTIVE", "SUSPENDED", "DISABLED", "DELETION_PENDING"].includes(
+    String(params.status),
+  )
+    ? (String(params.status) as
+        | "ACTIVE"
+        | "SUSPENDED"
+        | "DISABLED"
+        | "DELETION_PENDING")
+    : undefined;
+  const canConfigure = hasPermission(session.user.role, "FLAG_MANAGE");
+  const canManagePlans = hasPermission(session.user.role, "PLAN_MANAGE");
+  const canReadAudit = hasPermission(session.user.role, "AUDIT_READ");
+  const canInspectJobs = hasRole(session.user.role, "ADMIN");
+  const [users, permissionMatrix, flags, reserved, catalog, jobs, audit] =
+    await Promise.all([
+      api.admin.users({ query, role, status }),
+      api.admin.permissionMatrix(),
+      canConfigure ? api.admin.flags() : Promise.resolve([]),
+      canConfigure ? api.admin.reservedUsernames() : Promise.resolve([]),
+      canManagePlans ? api.admin.catalog() : Promise.resolve([]),
+      canInspectJobs ? api.admin.jobs() : Promise.resolve([]),
+      canReadAudit ? api.admin.audit() : Promise.resolve([]),
   ]);
-  async function suspend(form: FormData) {
-    "use server";
-    if (!confirmed(form)) return;
-    await api.admin.setSuspended({
-      userId: String(form.get("userId")),
-      suspended: String(form.get("suspended")) === "true",
-      confirmation: "CONFIRM",
-    });
-    revalidatePath("/admin");
-  }
-  async function hide(form: FormData) {
-    "use server";
-    if (!confirmed(form)) return;
-    await api.admin.setProfileHidden({
-      profileId: String(form.get("profileId")),
-      hidden: String(form.get("hidden")) === "true",
-      confirmation: "CONFIRM",
-    });
-    revalidatePath("/admin");
-  }
   async function flag(form: FormData) {
     "use server";
     await api.admin.setFlag({
@@ -101,17 +104,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     });
     revalidatePath("/admin");
   }
-  async function grantPremium(form: FormData) {
-    "use server";
-    if (!confirmed(form)) return;
-    await api.admin.grantPremiumMonths({
-      userId: String(form.get("userId")),
-      months: Number(form.get("months")),
-      reason: String(form.get("reason")),
-      confirmation: "CONFIRM",
-    });
-    revalidatePath("/admin");
-  }
   const date = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -138,216 +130,141 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <UserRoundCog className="size-4 text-primary" />
-            <h2 className="text-base font-semibold">{t("users")}</h2>
+        <section className="space-y-4" aria-labelledby="user-directory-title">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <UserRoundCog className="size-4 text-primary" />
+                <h2 id="user-directory-title" className="text-base font-semibold">
+                  {t("users")}
+                </h2>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("userDirectoryDescription")}
+              </p>
+            </div>
+            <Badge variant="primary">{t(`roles.${session.user.role}`)}</Badge>
           </div>
-          <form className="flex max-w-lg gap-2">
-            <Input
-              name="q"
-              defaultValue={query}
-              placeholder={t("searchUsers")}
-            />
+          <form className="grid gap-2 rounded-md border border-border bg-surface-raised p-3 shadow-xs md:grid-cols-[minmax(14rem,1fr)_11rem_12rem_auto_auto]">
+            <Input name="q" defaultValue={query} placeholder={t("searchUsers")} />
+            <label className="sr-only" htmlFor="admin-role-filter">
+              {t("filterRole")}
+            </label>
+            <select
+              id="admin-role-filter"
+              name="role"
+              defaultValue={role ?? ""}
+              className="h-9 rounded-sm border border-border bg-surface px-3 text-sm text-foreground shadow-xs focus:border-primary focus:ring-3 focus:ring-primary/12 focus:outline-none"
+            >
+              <option value="">{t("allRoles")}</option>
+              {(["USER", "MODERATOR", "ADMIN"] as const).map((item) => (
+                <option key={item} value={item}>
+                  {t(`roles.${item}`)}
+                </option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="admin-status-filter">
+              {t("filterStatus")}
+            </label>
+            <select
+              id="admin-status-filter"
+              name="status"
+              defaultValue={status ?? ""}
+              className="h-9 rounded-sm border border-border bg-surface px-3 text-sm text-foreground shadow-xs focus:border-primary focus:ring-3 focus:ring-primary/12 focus:outline-none"
+            >
+              <option value="">{t("allStatuses")}</option>
+              {(["ACTIVE", "SUSPENDED", "DISABLED", "DELETION_PENDING"] as const).map(
+                (item) => (
+                  <option key={item} value={item}>
+                    {t(`statuses.${item}`)}
+                  </option>
+                ),
+              )}
+            </select>
             <Button variant="secondary">
               <Search />
               {t("search")}
             </Button>
+            <Link
+              href="/admin"
+              className={buttonVariants({ variant: "ghost", size: "md" })}
+            >
+              {t("clearFilters")}
+            </Link>
           </form>
           {users.length ? (
-            <div className="space-y-3">
-              {users.map((user) => (
-                <article
-                  key={user.id}
-                  className="rounded-md border border-border bg-surface-raised p-4 shadow-xs"
-                >
-                  <div className="flex flex-wrap items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">
-                        {user.email ?? user.name ?? user.id}
-                      </p>
-                      <div className="mt-1 flex gap-1">
-                        <Badge
-                          variant={
-                            user.status === "ACTIVE" ? "success" : "danger"
-                          }
-                        >
-                          {user.status}
-                        </Badge>
-                        <Badge>{user.role}</Badge>
-                        {user.subscriptions[0] ? (
-                          <Badge variant="primary">
-                            {user.subscriptions[0].plan.name}
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </div>
-                    <form
-                      action={suspend}
-                      className="flex flex-wrap items-center gap-2"
+            <div className="overflow-hidden rounded-md border border-border bg-surface-raised shadow-xs">
+              <div className="hidden grid-cols-[minmax(16rem,1.5fr)_minmax(10rem,1fr)_9rem_8rem_auto] gap-4 border-b border-border-subtle bg-muted/50 px-4 py-2.5 text-xs font-medium text-muted-foreground lg:grid">
+                <span>{t("account")}</span>
+                <span>{t("profiles")}</span>
+                <span>{t("plan")}</span>
+                <span>{t("joined")}</span>
+                <span className="sr-only">{t("manageUser")}</span>
+              </div>
+              <div className="divide-y divide-border-subtle">
+                {users.map((user) => {
+                  const label = user.name ?? user.email ?? user.id;
+                  const profile = user.profiles[0];
+                  const subscription = user.subscriptions[0];
+                  return (
+                    <article
+                      key={user.id}
+                      className="grid gap-3 px-4 py-4 transition-colors duration-150 hover:bg-surface-hover lg:grid-cols-[minmax(16rem,1.5fr)_minmax(10rem,1fr)_9rem_8rem_auto] lg:items-center lg:gap-4"
                     >
-                      <input type="hidden" name="userId" value={user.id} />
-                      <input
-                        type="hidden"
-                        name="suspended"
-                        value={String(user.status !== "SUSPENDED")}
-                      />
-                      <Input
-                        className="w-32"
-                        name="confirmation"
-                        placeholder={t("typeConfirm")}
-                        pattern="CONFIRM"
-                        required
-                      />
-                      <Button
-                        size="sm"
-                        variant={
-                          user.status === "SUSPENDED"
-                            ? "secondary"
-                            : "outlineDanger"
-                        }
-                      >
-                        {user.status === "SUSPENDED"
-                          ? t("unsuspend")
-                          : t("suspend")}
-                      </Button>
-                    </form>
-                  </div>
-                  <details className="mt-4 border-t border-border-subtle pt-3">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-foreground marker:content-none">
-                      <CalendarPlus className="size-4 text-primary" />
-                      {t("manualPremium")}
-                      {user.subscriptions.find(
-                        (subscription) => subscription.provider === "manual",
-                      )?.currentPeriodEnd ? (
-                        <Badge variant="primary" className="ml-auto">
-                          {t("activeUntil", {
-                            date: date.format(
-                              user.subscriptions.find(
-                                (subscription) =>
-                                  subscription.provider === "manual",
-                              )!.currentPeriodEnd!,
-                            ),
-                          })}
-                        </Badge>
-                      ) : null}
-                    </summary>
-                    <p className="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground">
-                      {t("manualPremiumDescription")}
-                    </p>
-                    <form
-                      action={grantPremium}
-                      className="mt-3 grid gap-2 lg:grid-cols-[minmax(10rem,14rem)_1fr_10rem_auto]"
-                    >
-                      <input type="hidden" name="userId" value={user.id} />
-                      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-                        {t("months")}
-                        <select
-                          name="months"
-                          defaultValue="1"
-                          className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm text-foreground shadow-xs focus:border-primary focus:ring-3 focus:ring-primary/12 focus:outline-none"
-                        >
-                          {Array.from({ length: 24 }, (_, index) => {
-                            const months = index + 1;
-                            const manualSubscription = user.subscriptions.find(
-                              (subscription) =>
-                                subscription.provider === "manual",
-                            );
-                            const now = new Date();
-                            const base =
-                              manualSubscription?.currentPeriodEnd &&
-                              manualSubscription.currentPeriodEnd > now
-                                ? manualSubscription.currentPeriodEnd
-                                : now;
-                            return (
-                              <option key={months} value={months}>
-                                {t("monthOption", {
-                                  count: months,
-                                  date: date.format(
-                                    addUtcCalendarMonths(base, months),
-                                  ),
-                                })}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </label>
-                      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-                        {t("reason")}
-                        <Input
-                          name="reason"
-                          minLength={3}
-                          maxLength={300}
-                          placeholder={t("manualPremiumReason")}
-                          required
-                        />
-                      </label>
-                      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-                        {t("confirmation")}
-                        <Input
-                          name="confirmation"
-                          placeholder={t("typeConfirm")}
-                          pattern="CONFIRM"
-                          required
-                        />
-                      </label>
-                      <Button className="self-end" variant="primary">
-                        {t("grantPremium")}
-                      </Button>
-                    </form>
-                  </details>
-                  {user.profiles.length ? (
-                    <div className="mt-4 divide-y divide-border-subtle border-t border-border-subtle">
-                      {user.profiles.map((profile) => (
-                        <div
-                          key={profile.id}
-                          className="flex flex-wrap items-center gap-2 py-3"
-                        >
-                          <span className="min-w-0 flex-1 text-sm">
-                            olnk.tr/{profile.username}
-                          </span>
-                          <Badge
-                            variant={
-                              profile.status === "ACTIVE"
-                                ? "success"
-                                : "warning"
-                            }
-                          >
-                            {profile.status}
-                          </Badge>
-                          <form
-                            action={hide}
-                            className="flex items-center gap-2"
-                          >
-                            <input
-                              type="hidden"
-                              name="profileId"
-                              value={profile.id}
-                            />
-                            <input
-                              type="hidden"
-                              name="hidden"
-                              value={String(profile.status !== "HIDDEN")}
-                            />
-                            <Input
-                              className="w-32"
-                              name="confirmation"
-                              placeholder={t("typeConfirm")}
-                              pattern="CONFIRM"
-                              required
-                            />
-                            <Button size="sm" variant="secondary">
-                              {profile.status === "HIDDEN"
-                                ? t("unhide")
-                                : t("hide")}
-                            </Button>
-                          </form>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar name={label} src={user.image} />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{label}</p>
+                          {user.name && user.email ? (
+                            <p className="truncate text-xs text-muted-foreground">
+                              {user.email}
+                            </p>
+                          ) : null}
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            <Badge>{t(`roles.${user.role}`)}</Badge>
+                            <Badge
+                              variant={
+                                user.status === "ACTIVE" ? "success" : "danger"
+                              }
+                            >
+                              {t(`statuses.${user.status}`)}
+                            </Badge>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
-              ))}
+                      </div>
+                      <div className="min-w-0 text-sm">
+                        {profile ? (
+                          <>
+                            <p className="truncate font-medium">@{profile.username}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {profile.displayName}
+                            </p>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">{t("noProfiles")}</span>
+                        )}
+                      </div>
+                      <div>
+                        {subscription ? (
+                          <Badge variant="primary">{subscription.plan.name}</Badge>
+                        ) : (
+                          <Badge>{t("freePlan")}</Badge>
+                        )}
+                      </div>
+                      <time className="text-xs text-muted-foreground">
+                        {date.format(user.createdAt)}
+                      </time>
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className={buttonVariants({ variant: "secondary", size: "sm" })}
+                      >
+                        {t("manageUser")}
+                        <ChevronRight />
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <p className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -355,6 +272,52 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             </p>
           )}
         </section>
+
+        <section className="space-y-4" aria-labelledby="permissions-title">
+          <div className="flex items-center gap-2">
+            <KeyRound className="size-4 text-primary" />
+            <h2 id="permissions-title" className="text-base font-semibold">
+              {t("permissions")}
+            </h2>
+          </div>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            {t("permissionsDescription")}
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {permissionMatrix.roles.map((item) => (
+              <div
+                key={item.role}
+                className="rounded-md border border-border bg-surface-raised p-4 shadow-xs"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">{t(`roles.${item.role}`)}</h3>
+                  {item.role === permissionMatrix.currentRole ? (
+                    <Badge variant="primary">{t("yourRole")}</Badge>
+                  ) : null}
+                </div>
+                <ul className="mt-3 space-y-2">
+                  {permissionMatrix.permissions.map((permission) => {
+                    const allowed = item.permissions.includes(permission);
+                    return (
+                      <li
+                        key={permission}
+                        className="flex items-center justify-between gap-2 text-xs"
+                      >
+                        <span className="text-muted-foreground">
+                          {t(`permissionLabels.${permission}`)}
+                        </span>
+                        <Badge variant={allowed ? "success" : "neutral"}>
+                          {allowed ? t("allowed") : t("notAllowed")}
+                        </Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+        {canConfigure ? (
         <section className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -426,6 +389,8 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             </div>
           </div>
         </section>
+        ) : null}
+        {canManagePlans ? (
         <section className="space-y-4">
           <h2 className="text-base font-semibold">{t("plans")}</h2>
           <div className="space-y-3">
@@ -482,8 +447,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             ))}
           </div>
         </section>
+        ) : null}
+        {canInspectJobs || canReadAudit ? (
         <section className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-4">
+          {canInspectJobs ? <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Activity className="size-4 text-primary" />
               <h2 className="text-base font-semibold">
@@ -508,8 +475,8 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                 {t("noFailures")}
               </p>
             )}
-          </div>
-          <div className="space-y-4">
+          </div> : null}
+          {canReadAudit ? <div className="space-y-4">
             <h2 className="text-base font-semibold">{t("audit")}</h2>
             <div className="max-h-96 divide-y divide-border-subtle overflow-y-auto rounded-md border border-border">
               {audit.map((entry) => (
@@ -525,8 +492,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                 </div>
               ))}
             </div>
-          </div>
+          </div> : null}
         </section>
+        ) : null}
       </div>
     </main>
   );

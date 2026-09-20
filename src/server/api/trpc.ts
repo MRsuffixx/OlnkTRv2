@@ -13,6 +13,7 @@ const normalize=t.middleware(async({next})=>{const result=await next();if(!resul
 export const publicProcedure=t.procedure.use(normalize);
 const authenticated=t.middleware(async({ctx,next})=>{if(!ctx.session?.user)throw new TRPCError({code:"UNAUTHORIZED"});const user=await requireActiveAccount(ctx.session.user.id);return next({ctx:{...ctx,session:{...ctx.session,user:{...ctx.session.user,...user}}}});});
 export const protectedProcedure=publicProcedure.use(authenticated);
+export const staffProcedure=protectedProcedure.use(({ctx,next})=>{if(!hasRole(ctx.session.user.role,"MODERATOR"))throw new TRPCError({code:"FORBIDDEN"});return next();});
 export const adminProcedure=protectedProcedure.use(({ctx,next})=>{if(!hasRole(ctx.session.user.role,"ADMIN"))throw new TRPCError({code:"FORBIDDEN"});return next();});
 export const createTRPCRouter=t.router;
 export const createCallerFactory=t.createCallerFactory;

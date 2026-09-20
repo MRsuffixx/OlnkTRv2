@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp, CreditCard, LogOut, Settings2, UserRound } from "lucide-react";
+import { ChevronUp, CreditCard, LogOut, Settings2, ShieldCheck, UserRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 
@@ -14,6 +14,7 @@ export interface ShellAccount {
   email: string;
   image?: string | null;
   plan: string;
+  role: "USER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN";
 }
 
 export function AccountMenu({ account, collapsed }: { account: ShellAccount; collapsed: boolean }) {
@@ -41,6 +42,7 @@ export function AccountMenu({ account, collapsed }: { account: ShellAccount; col
         <DropdownMenuItem asChild><Link href="/dashboard/settings/profile"><UserRound />{nav("account")}</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/dashboard/settings"><Settings2 />{nav("settings")}</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/dashboard/billing"><CreditCard />{nav("billing")}</Link></DropdownMenuItem>
+        {account.role !== "USER" ? <DropdownMenuItem asChild><Link href="/admin"><ShieldCheck />{nav("administration")}</Link></DropdownMenuItem> : null}
         <DropdownMenuSeparator />
         <form action={signOutAction}><DropdownMenuItem asChild><button type="submit" className="w-full text-danger"><LogOut />{common("signOut")}</button></DropdownMenuItem></form>
       </DropdownMenuContent>
