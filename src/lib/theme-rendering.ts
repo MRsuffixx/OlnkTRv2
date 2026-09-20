@@ -25,27 +25,56 @@ export function themeFontStack(
 }
 
 export function themeBackgroundStyle(theme: ThemeConfigV2): CSSProperties {
+  return themeBackgroundStyleForMode(theme, false);
+}
+
+export function themeBackgroundStyleForMode(
+  theme: ThemeConfigV2,
+  dark: boolean,
+): CSSProperties {
   const source = theme.background;
-  if (source.type === "SOLID") return { background: source.color };
-  if (source.type === "IMAGE") {
+  if (source.type === "SOLID") {
     return {
-      backgroundColor: theme.colors.background,
-      backgroundImage: `url(/api/assets/${source.assetId})`,
-      backgroundPosition: `${source.focalX}% ${source.focalY}%`,
-      backgroundRepeat: "no-repeat",
-      backgroundSize: source.fit,
+      background: dark ? theme.mode.darkColors.background : source.color,
     };
   }
-  if (source.type === "VIDEO") {
-    return { background: theme.colors.background };
+  if (source.type === "IMAGE" || source.type === "VIDEO") {
+    return {
+      background: dark
+        ? theme.mode.darkColors.background
+        : theme.colors.background,
+    };
   }
 
-  const colors = source.stops.join(", ");
+  const colors = (dark
+    ? source.stops.map(
+        (color) =>
+          `color-mix(in srgb, ${color} 34%, ${theme.mode.darkColors.background})`,
+      )
+    : source.stops
+  ).join(", ");
   return {
     backgroundImage: `linear-gradient(${source.angle}deg, ${colors})`,
     backgroundSize:
       source.type === "ANIMATED_GRADIENT" ? "300% 300%" : undefined,
   };
+}
+
+export function themeColorVariables(
+  theme: ThemeConfigV2,
+  dark: boolean,
+): CSSProperties {
+  const colors = dark ? theme.mode.darkColors : theme.colors;
+  return {
+    "--olnk-page-background": colors.background,
+    "--olnk-page-text": colors.text,
+    "--olnk-page-muted": colors.mutedText,
+    "--olnk-page-accent": colors.accent,
+    "--olnk-page-button": colors.button,
+    "--olnk-page-button-text": colors.buttonText,
+    "--olnk-page-border": colors.border,
+    "--olnk-page-shadow": colors.shadow,
+  } as CSSProperties;
 }
 
 export function themeOverlayStyle(theme: ThemeConfigV2): CSSProperties {
@@ -75,9 +104,9 @@ export function avatarFrameStyle(theme: ThemeConfigV2): CSSProperties {
       : ring.colors[0];
   const shadow =
     avatar.shadow === "strong"
-      ? `0 14px 34px color-mix(in srgb, ${theme.colors.shadow} 32%, transparent)`
+      ? "0 14px 34px color-mix(in srgb, var(--olnk-page-shadow) 32%, transparent)"
       : avatar.shadow === "soft"
-        ? `0 7px 20px color-mix(in srgb, ${theme.colors.shadow} 18%, transparent)`
+        ? "0 7px 20px color-mix(in srgb, var(--olnk-page-shadow) 18%, transparent)"
         : avatar.shadow === "glow"
           ? `0 0 26px color-mix(in srgb, ${ring.colors[0]} 68%, transparent)`
           : undefined;
@@ -108,7 +137,7 @@ export function buttonStyle(theme: ThemeConfigV2): CSSProperties {
       : button.shadow === "soft"
         ? `0 7px 20px color-mix(in srgb, ${button.shadowColor} 18%, transparent)`
         : button.shadow === "glow" || button.style === "neon"
-          ? `0 0 24px color-mix(in srgb, ${theme.colors.button} 60%, transparent)`
+        ? "0 0 24px color-mix(in srgb, var(--olnk-page-button) 60%, transparent)"
           : undefined;
   const fill = button.style === "solid" || button.shape === "brutalist";
 
@@ -123,13 +152,13 @@ export function buttonStyle(theme: ThemeConfigV2): CSSProperties {
           : `${button.borderWidth}px solid color-mix(in srgb, ${theme.colors.border} 45%, transparent)`,
     background:
       fill
-        ? theme.colors.button
+        ? "var(--olnk-page-button)"
         : button.style === "soft"
-          ? `color-mix(in srgb, ${theme.colors.button} 14%, transparent)`
+          ? "color-mix(in srgb, var(--olnk-page-button) 14%, transparent)"
           : button.style === "glass"
-            ? `color-mix(in srgb, ${theme.colors.button} ${button.glassOpacity}%, transparent)`
+            ? `color-mix(in srgb, var(--olnk-page-button) ${button.glassOpacity}%, transparent)`
             : "transparent",
-    color: fill ? theme.colors.buttonText : theme.colors.text,
+    color: fill ? "var(--olnk-page-button-text)" : "var(--olnk-page-text)",
     boxShadow: shadow,
     backdropFilter: button.style === "glass" ? "blur(14px)" : undefined,
   };

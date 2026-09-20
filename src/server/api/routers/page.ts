@@ -15,7 +15,7 @@ export const pageRouter = createTRPCRouter({
   blocks: protectedProcedure
     .input(z.object({ pageId: z.string().cuid() }))
     .query(({ ctx, input }) => ctx.db.block.findMany({
-      where: { pageId: input.pageId, page: { profile: { userId: ctx.session.user.id } } },
+      where: { pageId: input.pageId, deletedAt: null, page: { profile: { userId: ctx.session.user.id } } },
       orderBy: { position: "asc" },
     })),
   createBlock: protectedProcedure

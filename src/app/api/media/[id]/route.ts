@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "~/server/auth";
-import { db } from "~/server/db";
+import { findOwnedDelivery } from "~/server/media/delivery";
 import { storage } from "~/server/storage";
 
-export async function GET(_request: Request, context: RouteContext<"/api/media/[id]">) {
+export async function GET(
+  request: Request,
+  context: RouteContext<"/api/media/[id]">,
+) {
   const session = await auth();
   if (!session?.user) return new NextResponse(null, { status: 401 });
   const { id } = await context.params;
-  const asset = await db.mediaAsset.findFirst({ where: { id, ownerId: session.user.id, status: "READY" } });
+  const requested = new URL(request.url).searchParams.get("variant");
+  const asset = await findOwnedDelivery(
+    id,
+    session.user.id,
+    requested === "poster" ? "poster" : "content",
+  );
   if (!asset) return new NextResponse(null, { status: 404 });
   const bytes = await storage.getObject(asset.objectKey);
   return new NextResponse(Buffer.from(bytes), {

@@ -3,6 +3,29 @@ import { z } from "zod";
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const assetId = z.string().cuid();
 const clockTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
+const colorPaletteSchema = z
+  .object({
+    background: hexColor,
+    text: hexColor,
+    mutedText: hexColor,
+    accent: hexColor,
+    button: hexColor,
+    buttonText: hexColor,
+    border: hexColor,
+    shadow: hexColor,
+  })
+  .strict();
+
+export const defaultNightColors = {
+  background: "#11111b",
+  text: "#f5f3ff",
+  mutedText: "#aaa6bb",
+  accent: "#9b8cff",
+  button: "#7668e8",
+  buttonText: "#ffffff",
+  border: "#333044",
+  shadow: "#000000",
+} as const;
 
 export const fontFamilySchema = z.enum([
   "geist",
@@ -95,20 +118,10 @@ export const themeConfigV2Schema = z
         strategy: z.enum(["light", "dark", "system", "scheduled"]),
         dayStart: clockTime,
         nightStart: clockTime,
+        darkColors: colorPaletteSchema.default(defaultNightColors),
       })
       .strict(),
-    colors: z
-      .object({
-        background: hexColor,
-        text: hexColor,
-        mutedText: hexColor,
-        accent: hexColor,
-        button: hexColor,
-        buttonText: hexColor,
-        border: hexColor,
-        shadow: hexColor,
-      })
-      .strict(),
+    colors: colorPaletteSchema,
     background: backgroundSchema,
     layout: z
       .object({
@@ -202,7 +215,12 @@ const defaultOverlay = {
 
 export const defaultThemeConfig: ThemeConfigV2 = themeConfigV2Schema.parse({
   schemaVersion: 2,
-  mode: { strategy: "system", dayStart: "07:00", nightStart: "19:00" },
+  mode: {
+    strategy: "system",
+    dayStart: "07:00",
+    nightStart: "19:00",
+    darkColors: defaultNightColors,
+  },
   colors: {
     background: "#f7f7fa",
     text: "#181824",

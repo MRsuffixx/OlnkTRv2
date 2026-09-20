@@ -2,6 +2,8 @@
 
 import {
   FileImage,
+  Film,
+  Loader2,
   MoreHorizontal,
   Search,
   Trash2,
@@ -52,6 +54,12 @@ export function MediaLibrary({
   const utils = api.useUtils();
   const { data: assets = initialAssets } = api.media.list.useQuery(undefined, {
     initialData: initialAssets,
+    refetchInterval: (queryState) =>
+      queryState.state.data?.some((asset) =>
+        ["PENDING", "PROCESSING"].includes(asset.status),
+      )
+        ? 2000
+        : false,
   });
   const remove = api.media.delete.useMutation({
     onSuccess: async () => {
@@ -111,7 +119,7 @@ export function MediaLibrary({
             className="sr-only"
             name="media-file"
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
+            accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
             tabIndex={-1}
             aria-hidden="true"
             onChange={(event) => {
@@ -137,14 +145,27 @@ export function MediaLibrary({
               className="group overflow-hidden rounded-md border border-border bg-surface-raised shadow-xs"
             >
               <div className="relative aspect-square bg-muted">
-                <Image
-                  src={`/api/media/${asset.id}`}
-                  alt={asset.originalName ?? ""}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 20vw"
-                  unoptimized
-                  className="object-cover"
-                />
+                {asset.status === "READY" ? (
+                  <Image
+                    src={`/api/media/${asset.id}${asset.kind === "VIDEO" ? "?variant=poster" : ""}`}
+                    alt={asset.originalName ?? ""}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 20vw"
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex size-full flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
+                    {asset.status === "REJECTED" ? (
+                      <Film className="size-5" />
+                    ) : (
+                      <Loader2 className="size-5 animate-spin" />
+                    )}
+                    {asset.status === "REJECTED"
+                      ? media("processingFailed")
+                      : media("processing")}
+                  </div>
+                )}
                 <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                   <AlertDialog>
                     <DropdownMenu>
@@ -185,6 +206,7 @@ export function MediaLibrary({
                           <Button
                             variant="danger"
                             loading={remove.isPending}
+                            disabled={!["READY", "REJECTED"].includes(asset.status)}
                             onClick={() => remove.mutate({ id: asset.id })}
                           >
                             {common("delete")}

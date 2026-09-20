@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, BadgeCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -12,17 +12,25 @@ import {
   avatarRadius,
   buttonMotionClass,
   buttonStyle,
-  themeBackgroundStyle,
   themeFontStack,
   themeOverlayStyle,
 } from "~/lib/theme-rendering";
 import type { ThemeConfig } from "~/server/publishing/snapshot";
+import { ThemeMediaBackground } from "./theme-media-background";
+import { CountdownBlock } from "~/features/public/countdown-block";
+import { DiscordPresenceBlock } from "~/features/public/discord-presence-block";
+import { ExternalWidgetBlock } from "~/features/public/external-widget-block";
+import { PollBlock } from "~/features/public/poll-block";
+import { VisitorCounterBlock } from "~/features/public/visitor-counter-block";
+import { ThemeModeSurface } from "~/features/public/theme-mode-surface";
+import { VibeLayer } from "~/features/public/vibe-layer";
 
 interface PublicSnapshot {
   profile: {
     displayName: string;
     bio: string | null;
     avatarUrl: string | null;
+    verified?: boolean;
   };
   page: {
     title: string | null;
@@ -110,6 +118,114 @@ function PublicBlock({
       </div>
     );
   }
+  if (block.type === "HIGHLIGHT") {
+    const content = (
+      <span className="block">
+        <strong className="block text-sm">{String(config.title)}</strong>
+        {typeof config.text === "string" && config.text ? (
+          <span className="mt-1 block text-xs opacity-75">{config.text}</span>
+        ) : null}
+      </span>
+    );
+    const className =
+      "w-full rounded-2xl border border-current/15 bg-current/8 p-4 text-left backdrop-blur-sm transition-transform hover:scale-[1.01]";
+    return typeof config.href === "string" ? (
+      <PublicTrackedLink
+        profileId={profileId}
+        blockId={block.id}
+        href={config.href}
+        className={className}
+      >
+        {content}
+      </PublicTrackedLink>
+    ) : (
+      <aside className={className}>{content}</aside>
+    );
+  }
+  if (block.type === "COUNTDOWN") {
+    return (
+      <CountdownBlock
+        title={String(config.title)}
+        targetAt={String(config.targetAt)}
+        expiredLabel={String(config.expiredLabel)}
+      />
+    );
+  }
+  if (block.type === "VISITOR_COUNTER") {
+    return (
+      <VisitorCounterBlock
+        profileId={profileId}
+        label={String(config.label)}
+        period={config.period === "daily" ? "daily" : "total"}
+      />
+    );
+  }
+  if (block.type === "SUPPORT") {
+    const provider = String(config.provider);
+    const body = (
+      <span className="block">
+        <strong className="block">{String(config.title)}</strong>
+        {typeof config.description === "string" && config.description ? (
+          <span className="mt-1 block text-xs opacity-70">
+            {config.description}
+          </span>
+        ) : null}
+        {provider === "iban" && typeof config.iban === "string" ? (
+          <span className="mt-2 block font-mono text-xs tracking-wide">
+            {config.iban}
+          </span>
+        ) : null}
+      </span>
+    );
+    return typeof config.href === "string" ? (
+      <PublicTrackedLink
+        profileId={profileId}
+        blockId={block.id}
+        href={config.href}
+        className="w-full px-4 py-3 text-left"
+        style={buttonStyle(theme)}
+      >
+        {body}
+      </PublicTrackedLink>
+    ) : (
+      <aside
+        className="w-full px-4 py-3 text-left"
+        style={buttonStyle(theme)}
+      >
+        {body}
+      </aside>
+    );
+  }
+  if (block.type === "POLL") {
+    return (
+      <PollBlock
+        blockId={block.id}
+        question={String(config.question)}
+        options={
+          Array.isArray(config.options)
+            ? (config.options as Array<{ key: string; label: string }>)
+            : []
+        }
+      />
+    );
+  }
+  if (block.type === "DISCORD") {
+    return (
+      <DiscordPresenceBlock
+        discordUserId={String(config.discordUserId)}
+        showSpotify={config.showSpotify === true}
+        showActivity={config.showActivity === true}
+      />
+    );
+  }
+  if (
+    block.type === "GITHUB" ||
+    block.type === "SPOTIFY" ||
+    block.type === "YOUTUBE" ||
+    block.type === "TWITCH"
+  ) {
+    return <ExternalWidgetBlock blockId={block.id} provider={block.type} />;
+  }
   if (block.type !== "LINK") return null;
   return (
     <PublicTrackedLink
@@ -145,21 +261,36 @@ export function PublicProfile({
   const { theme, profile } = snapshot;
   const avatarStyle = avatarFrameStyle(theme);
   const profileHorizontal = theme.layout.profileLayout === "left-card";
+  const socialBlocks = snapshot.blocks.filter(
+    (block) => block.type === "SOCIALS",
+  );
+  const contentBlocks = snapshot.blocks.filter(
+    (block) => block.type !== "SOCIALS",
+  );
+  const renderSocials = (placement: ThemeConfig["layout"]["socialPlacement"]) =>
+    theme.layout.socialPlacement === placement
+      ? socialBlocks.map((block) => (
+          <PublicBlock
+            key={block.id}
+            block={block}
+            profileId={profileId}
+            theme={theme}
+          />
+        ))
+      : null;
 
   return (
-    <main
+    <ThemeModeSurface
+      element="main"
+      theme={theme}
       id="main-content"
       tabIndex={-1}
-      data-theme-mode={theme.mode.strategy}
-      data-vibe-layer={theme.effects.layer}
       className={cn(
         "relative min-h-dvh overflow-hidden",
         theme.background.type === "ANIMATED_GRADIENT" &&
           "animate-theme-gradient",
       )}
       style={{
-        ...themeBackgroundStyle(theme),
-        color: theme.colors.text,
         fontFamily: themeFontStack(theme.typography.body.family),
         fontWeight: theme.typography.body.weight,
         lineHeight: theme.typography.body.lineHeight,
@@ -167,17 +298,13 @@ export function PublicProfile({
       }}
     >
       <AnalyticsBeacon profileId={profileId} />
+      <ThemeMediaBackground theme={theme} assetBase="/api/assets" />
+      <VibeLayer theme={theme} />
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0"
         style={themeOverlayStyle(theme)}
       />
-      {theme.effects.layer === "stars" || theme.effects.layer === "snow" ? (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_20%,currentColor_0_1px,transparent_1.5px)] bg-[size:28px_28px] opacity-25"
-        />
-      ) : null}
       <div
         className={cn(
           "relative mx-auto flex min-h-dvh flex-col",
@@ -201,7 +328,7 @@ export function PublicProfile({
               "rounded-2xl border border-current/15 bg-current/5 p-5 backdrop-blur-sm",
           )}
         >
-          <div style={avatarStyle} className="shrink-0">
+          <div style={avatarStyle} className="shrink-0 overflow-hidden">
             {profile.avatarUrl ? (
               <Image
                 src={`/api/assets/${profile.avatarUrl}`}
@@ -226,27 +353,36 @@ export function PublicProfile({
             )}
           </div>
           <div>
-            <h1
-              className="text-xl"
-              style={{
-                fontFamily: themeFontStack(theme.typography.heading.family),
-                fontWeight: theme.typography.heading.weight,
-                letterSpacing: `${theme.typography.heading.letterSpacing}em`,
-              }}
-            >
-              {profile.displayName}
-            </h1>
+            <span className="inline-flex items-center gap-1.5">
+              <h1
+                className="text-xl"
+                style={{
+                  fontFamily: themeFontStack(theme.typography.heading.family),
+                  fontWeight: theme.typography.heading.weight,
+                  letterSpacing: `${theme.typography.heading.letterSpacing}em`,
+                }}
+              >
+                {profile.displayName}
+              </h1>
+              {profile.verified ? (
+                <BadgeCheck
+                  aria-label="Verified account"
+                  className="size-5 fill-current text-current"
+                />
+              ) : null}
+            </span>
             {profile.bio ? (
               <p
                 className="mt-1 max-w-md text-sm"
-                style={{ color: theme.colors.mutedText }}
+                    style={{ color: "var(--olnk-page-muted)" }}
               >
                 {profile.bio}
               </p>
             ) : null}
           </div>
         </header>
-        {snapshot.blocks.map((block) => (
+        {renderSocials("top")}
+        {contentBlocks.map((block) => (
           <PublicBlock
             key={block.id}
             block={block}
@@ -254,6 +390,7 @@ export function PublicProfile({
             theme={theme}
           />
         ))}
+        {renderSocials("bottom")}
         {theme.branding.visible ? (
           <footer className="mt-auto pt-10 text-[11px] opacity-45">
             <Link href="/" className="transition-opacity hover:opacity-80">
@@ -262,6 +399,11 @@ export function PublicProfile({
           </footer>
         ) : null}
       </div>
-    </main>
+      {theme.layout.socialPlacement === "fixed-footer" && socialBlocks.length ? (
+        <div className="fixed inset-x-0 bottom-4 z-10 mx-auto flex w-fit max-w-[calc(100%-2rem)] rounded-full border border-current/15 bg-black/10 px-3 py-2 shadow-lg backdrop-blur-xl">
+          {renderSocials("fixed-footer")}
+        </div>
+      ) : null}
+    </ThemeModeSurface>
   );
 }

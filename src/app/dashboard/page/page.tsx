@@ -18,5 +18,5 @@ export default async function PageEditor() {
     seo: seoConfigSchema.parse(page.draft.seoConfig),
     blocks: page.blocks.map((block) => ({ id: block.id, type: block.type, config: block.config, position: block.position, enabled: block.enabled })),
   };
-  return <Editor initialDocument={initialDocument} profile={{ username: profile.username, displayName: profile.displayName, bio: profile.bio }} />;
+  return <Editor initialDocument={initialDocument} profile={{ id: profile.id, username: profile.username, displayName: profile.displayName, bio: profile.bio, avatarAssetId: profile.avatarAssetId, verified: profile.verified }} />;
 }

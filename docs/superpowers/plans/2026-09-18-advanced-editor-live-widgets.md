@@ -231,7 +231,7 @@ Run: `pnpm vitest run tests/unit/publishing tests/unit/editor tests/domain/publi
 - Produces: `MediaPicker` returning an owned ready `MediaAsset`.
 - Produces: media job `process-video` generating a loop-safe derivative and poster.
 
-- [ ] **Step 1: Write failing avatar ownership and video validation tests**
+- [x] **Step 1: Write failing avatar ownership and video validation tests**
 
 ```ts
 it("rejects another user's image as an avatar", async () => {
@@ -245,23 +245,23 @@ it("rejects video over the configured duration", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused tests and confirm failure**
+- [x] **Step 2: Run the focused tests and confirm failure**
 
 Run: `pnpm vitest run tests/domain/storage.test.ts`
 
-- [ ] **Step 3: Extend media validation and metadata**
+- [x] **Step 3: Extend media validation and metadata**
 
 Add MP4/WebM upload kinds, processing state, source/derivative relations, duration, and poster asset metadata. Keep generated object keys and signature validation. Add migration and regenerate Prisma Client.
 
-- [ ] **Step 4: Implement the media worker pipeline**
+- [x] **Step 4: Implement the media worker pipeline**
 
 Probe with configured FFmpeg/FFprobe, enforce duration and dimensions, generate a muted H.264 MP4 plus WebP poster, upload through `StorageProvider`, and atomically mark the derivative ready. Record safe failure codes in `JobFailure`.
 
-- [ ] **Step 5: Implement avatar/background media selection UI**
+- [x] **Step 5: Implement avatar/background media selection UI**
 
 Reuse the media list query and upload endpoint. Filter the picker by image/video purpose, show processing states, allow avatar removal, and update preview immediately. Persist only after ownership-checked mutations.
 
-- [ ] **Step 6: Verify storage, database, worker, and Docker behavior**
+- [x] **Step 6: Verify storage, database, worker, and Docker behavior**
 
 Run: `pnpm db:generate && pnpm vitest run tests/domain/storage.test.ts && RUN_DB_TESTS=1 pnpm vitest run tests/integration/database.test.ts && pnpm typecheck`
 
@@ -288,7 +288,7 @@ Run: `pnpm db:generate && pnpm vitest run tests/domain/storage.test.ts && RUN_DB
 - Adds stable block types: `HIGHLIGHT`, `COUNTDOWN`, `VISITOR_COUNTER`, `SUPPORT`, `POLL`.
 - Produces: `submitPollVote(blockId, optionKey, visitorHash)` and aggregate result DTO.
 
-- [ ] **Step 1: Write failing config-schema tests for every new block**
+- [x] **Step 1: Write failing config-schema tests for every new block**
 
 ```ts
 it("rejects countdown dates without timezone offsets", () => {
@@ -302,23 +302,23 @@ it("requires polls to have 2–6 unique options", () => {
 });
 ```
 
-- [ ] **Step 2: Run and confirm unsupported block failures**
+- [x] **Step 2: Run and confirm unsupported block failures**
 
 Run: `pnpm vitest run tests/domain/advanced-blocks.test.ts`
 
-- [ ] **Step 3: Add block schemas, editor forms, and previews**
+- [x] **Step 3: Add block schemas, editor forms, and previews**
 
 Use safe URL validation for highlight/support links, ISO datetimes for countdown, explicit display modes for counters, and stable generated option keys for polls.
 
-- [ ] **Step 4: Add relational poll votes and protected ingestion**
+- [x] **Step 4: Add relational poll votes and protected ingestion**
 
 Store block ID, option key, period, and rotating visitor hash. Add a unique database constraint on `(blockId, visitorHash, periodStart)`. Rate-limit the route and return aggregate counts only.
 
-- [ ] **Step 5: Add public renderers and real analytics counters**
+- [x] **Step 5: Add public renderers and real analytics counters**
 
 Visitor counters read aggregate analytics rather than incrementing separate fake counters. Countdown hydrates a small client island. Support content renders as text and validated links.
 
-- [ ] **Step 6: Verify block and database behavior**
+- [x] **Step 6: Verify block and database behavior**
 
 Run: `pnpm vitest run tests/domain/advanced-blocks.test.ts && RUN_DB_TESTS=1 pnpm vitest run tests/integration/database.test.ts`
 
@@ -349,7 +349,7 @@ Run: `pnpm vitest run tests/domain/advanced-blocks.test.ts && RUN_DB_TESTS=1 pnp
 - Produces normalized widget states `AVAILABLE | STALE | UNAVAILABLE | MISCONFIGURED`.
 - Produces encrypted `IntegrationConnection` credentials and Spotify connect/disconnect flow.
 
-- [ ] **Step 1: Write failing encryption and normalization tests**
+- [x] **Step 1: Write failing encryption and normalization tests**
 
 ```ts
 it("round-trips credentials without storing plaintext", () => {
@@ -363,27 +363,27 @@ it("normalizes an offline Lanyard response", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and confirm missing integration modules**
+- [x] **Step 2: Run tests and confirm missing integration modules**
 
 Run: `pnpm vitest run tests/domain/integrations.test.ts`
 
-- [ ] **Step 3: Implement authenticated credential encryption and connection storage**
+- [x] **Step 3: Implement authenticated credential encryption and connection storage**
 
 Use AES-256-GCM with versioned nonce, ciphertext, and auth tag. Require a 32-byte production `INTEGRATION_ENCRYPTION_KEY`. Never return credential payloads from tRPC.
 
-- [ ] **Step 4: Implement fixed-host provider adapters**
+- [x] **Step 4: Implement fixed-host provider adapters**
 
 Validate only IDs/usernames/channel handles. Use timeouts, response-size limits, Zod response parsing, safe error codes, and provider-specific TTLs. No adapter accepts a user-supplied origin.
 
-- [ ] **Step 5: Implement Spotify OAuth and refresh**
+- [x] **Step 5: Implement Spotify OAuth and refresh**
 
 Store single-use OAuth state in Redis, validate callback ownership, encrypt tokens, enqueue refresh before expiry, and support disconnect with credential deletion and audit logging.
 
-- [ ] **Step 6: Implement stale-while-refresh widget delivery**
+- [x] **Step 6: Implement stale-while-refresh widget delivery**
 
 The public route returns cached normalized data. Missing/freshness-expired data enqueues an idempotent refresh job. Provider failures preserve the last successful payload as `STALE`.
 
-- [ ] **Step 7: Verify provider contracts and environment validation**
+- [x] **Step 7: Verify provider contracts and environment validation**
 
 Run: `pnpm vitest run tests/domain/integrations.test.ts && pnpm lint && pnpm typecheck`
 
@@ -410,25 +410,25 @@ Run: `pnpm vitest run tests/domain/integrations.test.ts && pnpm lint && pnpm typ
 - Adds block types `DISCORD_STATUS`, `SPOTIFY_RECENT`, `GITHUB_ACTIVITY`, `VIDEO_FEED`.
 - Produces lazy client islands for live widgets and visual effect layers.
 
-- [ ] **Step 1: Write failing editor/public rendering tests**
+- [x] **Step 1: Write failing editor/public rendering tests**
 
 Assert each live block has a searchable picker entry, validated form, preview placeholder, public loading state, stale state, unavailable state, and keyboard-accessible canonical provider link.
 
 Run: `pnpm vitest run tests/unit/editor/live-blocks.test.tsx`
 
-- [ ] **Step 2: Implement categorized live block editor controls**
+- [x] **Step 2: Implement categorized live block editor controls**
 
 Discord accepts numeric user ID; GitHub accepts username; video feed accepts provider plus channel ID; Spotify requires an owned active connection. Display configuration guidance when a provider is disabled.
 
-- [ ] **Step 3: Implement public widget client islands**
+- [x] **Step 3: Implement public widget client islands**
 
 Fetch only same-origin routes, poll at bounded intervals while visible, pause in background tabs, and render provider-normalized payloads. Spotify progress is calculated locally between refreshes.
 
-- [ ] **Step 4: Implement mode and vibe renderers**
+- [x] **Step 4: Implement mode and vibe renderers**
 
 Use CSS for gradients/waves/stars/snow and a dynamically imported bounded canvas for digital rain. All layers are pointer-inert, pause on hidden documents, and render static fallbacks for reduced motion.
 
-- [ ] **Step 5: Verify editor, public renderer, accessibility, and responsive behavior**
+- [x] **Step 5: Verify editor, public renderer, accessibility, and responsive behavior**
 
 Run: `pnpm vitest run tests/unit/editor tests/unit/publishing && PLAYWRIGHT_EXTERNAL_SERVER=1 pnpm playwright test tests/e2e/advanced-editor.spec.ts`
 
@@ -449,33 +449,33 @@ Run: `pnpm vitest run tests/unit/editor tests/unit/publishing && PLAYWRIGHT_EXTE
 - Produces idempotent job `refresh-publication-entitlements:{userId}`.
 - Documents provider setup, encryption keys, FFmpeg, manual grants, media limits, and degraded modes.
 
-- [ ] **Step 1: Write a failing Premium-expiry integration test**
+- [x] **Step 1: Write a failing Premium-expiry integration test**
 
 Create a Premium draft using a video background, publish it, expire the subscription, process the entitlement-refresh job, and assert the draft still references the video while the effective public snapshot no longer activates it.
 
-- [ ] **Step 2: Implement idempotent entitlement refresh**
+- [x] **Step 2: Implement idempotent entitlement refresh**
 
 Billing transitions enqueue one job per user and transition timestamp. The worker regenerates effective publication state for active profiles without mutating draft JSON, then invalidates public caches.
 
-- [ ] **Step 3: Update developer and architecture documentation**
+- [x] **Step 3: Update developer and architecture documentation**
 
 Document all new environment variables, provider enablement behavior, OAuth callback URLs, media limits, FFmpeg requirements, entitlement mapping, manual-grant semantics, migrations, queues, and tests.
 
-- [ ] **Step 4: Run clean-database and seed verification**
+- [x] **Step 4: Run clean-database and seed verification**
 
 Run migrations against a fresh PostgreSQL database, run `pnpm db:seed`, and verify Free/Premium/LIVE_INTEGRATIONS entitlements and default flags.
 
-- [ ] **Step 5: Run all code-quality gates**
+- [x] **Step 5: Run all code-quality gates**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 
-- [ ] **Step 6: Run application compatibility gates**
+- [x] **Step 6: Run application compatibility gates**
 
 Run: `RUN_DB_TESTS=1 pnpm vitest run tests/integration/database.test.ts`  
 Run: `pnpm test:e2e`  
 Run: `docker compose build app worker`  
 Run app, worker, PostgreSQL, Redis, and Mailpit; verify readiness, one background media job, one analytics event, one manual grant, and the critical publish flow.
 
-- [ ] **Step 7: Perform visual and accessibility audits**
+- [x] **Step 7: Perform visual and accessibility audits**
 
 Inspect English/Turkish, light/dark/system, reduced motion, keyboard operation, and 375/390/768/1024/1280/1440 widths. Confirm there are no dead controls, untranslated significant strings, horizontal page overflow, inaccessible dialogs, or public-page console errors.

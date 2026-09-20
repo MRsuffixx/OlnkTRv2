@@ -4,6 +4,7 @@ import { Crown } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import {
@@ -12,6 +13,7 @@ import {
 } from "~/components/ui/segmented-control";
 import { Slider } from "~/components/ui/slider";
 import { Textarea } from "~/components/ui/textarea";
+import { MediaPicker } from "~/features/media/media-picker";
 import type { ThemeConfig } from "~/server/publishing/snapshot";
 import type {
   EditorDocument,
@@ -144,12 +146,15 @@ function RangeField({
 export function AppearanceInspector({
   section,
   document,
+  profile,
   onThemeChange,
   onPageChange,
   onSeoChange,
+  onAvatarChange,
 }: {
   section: Exclude<EditorSection, "content">;
   document: EditorDocument;
+  profile: { avatarAssetId: string | null };
   onThemeChange: (theme: ThemeConfig) => void;
   onPageChange: (
     patch: Partial<
@@ -157,6 +162,7 @@ export function AppearanceInspector({
     >,
   ) => void;
   onSeoChange: (seo: EditorSeoConfig) => void;
+  onAvatarChange: (assetId: string | null) => Promise<void>;
 }) {
   const t = useTranslations("editor");
   const presets = useTranslations("presets");
@@ -166,6 +172,15 @@ export function AppearanceInspector({
     onThemeChange({ ...theme, ...patch });
   const replaceColors = (patch: Partial<ThemeConfig["colors"]>) =>
     replace({ colors: { ...theme.colors, ...patch } });
+  const replaceDarkColors = (
+    patch: Partial<ThemeConfig["mode"]["darkColors"]>,
+  ) =>
+    replace({
+      mode: {
+        ...theme.mode,
+        darkColors: { ...theme.mode.darkColors, ...patch },
+      },
+    });
   const replaceOverlay = (
     patch: Partial<ThemeConfig["background"]["overlay"]>,
   ) =>
@@ -317,6 +332,41 @@ export function AppearanceInspector({
                 </div>
               ) : null}
             </ControlSection>
+            <ControlSection title={t("nightPalette")}>
+              <p className="text-xs leading-5 text-muted-foreground">
+                {t("nightPaletteDescription")}
+              </p>
+              <ColorField
+                label={t("backgroundColor")}
+                value={theme.mode.darkColors.background}
+                onChange={(background) => replaceDarkColors({ background })}
+              />
+              <ColorField
+                label={t("textColor")}
+                value={theme.mode.darkColors.text}
+                onChange={(text) => replaceDarkColors({ text })}
+              />
+              <ColorField
+                label={t("mutedTextColor")}
+                value={theme.mode.darkColors.mutedText}
+                onChange={(mutedText) => replaceDarkColors({ mutedText })}
+              />
+              <ColorField
+                label={t("accentColor")}
+                value={theme.mode.darkColors.accent}
+                onChange={(accent) => replaceDarkColors({ accent })}
+              />
+              <ColorField
+                label={t("buttonColor")}
+                value={theme.mode.darkColors.button}
+                onChange={(button) => replaceDarkColors({ button })}
+              />
+              <ColorField
+                label={t("buttonTextColor")}
+                value={theme.mode.darkColors.buttonText}
+                onChange={(buttonText) => replaceDarkColors({ buttonText })}
+              />
+            </ControlSection>
             <ControlSection title={t("layout")}>
               <Field label={t("profileLayout")} htmlFor="profile-layout">
                 <select
@@ -402,6 +452,22 @@ export function AppearanceInspector({
         {section === "profile" ? (
           <>
             <ControlSection title={t("avatar")}>
+              <MediaPicker
+                kind="IMAGE"
+                value={profile.avatarAssetId}
+                label={t("chooseAvatar")}
+                description={t("chooseAvatarDescription")}
+                onSelect={(asset) => void onAvatarChange(asset.id)}
+              />
+              {profile.avatarAssetId ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => void onAvatarChange(null)}
+                >
+                  {t("removeAvatar")}
+                </Button>
+              ) : null}
               <RangeField
                 label={t("avatarSize")}
                 value={theme.avatar.size}
@@ -554,6 +620,51 @@ export function AppearanceInspector({
 
         {section === "background" ? (
           <>
+            <div className="grid grid-cols-2 gap-2">
+              <MediaPicker
+                kind="IMAGE"
+                value={
+                  theme.background.type === "IMAGE"
+                    ? theme.background.assetId
+                    : null
+                }
+                label={t("chooseBackgroundImage")}
+                description={t("chooseBackgroundImageDescription")}
+                onSelect={(asset) =>
+                  replace({
+                    background: {
+                      type: "IMAGE",
+                      assetId: asset.id,
+                      fit: "cover",
+                      focalX: 50,
+                      focalY: 50,
+                      opacity: 100,
+                      overlay: theme.background.overlay,
+                    },
+                  })
+                }
+              />
+              <MediaPicker
+                kind="VIDEO"
+                value={
+                  theme.background.type === "VIDEO"
+                    ? theme.background.assetId
+                    : null
+                }
+                label={t("chooseBackgroundVideo")}
+                description={t("chooseBackgroundVideoDescription")}
+                onSelect={(asset) =>
+                  replace({
+                    background: {
+                      type: "VIDEO",
+                      assetId: asset.id,
+                      opacity: 100,
+                      overlay: theme.background.overlay,
+                    },
+                  })
+                }
+              />
+            </div>
             <Field label={t("backgroundType")} htmlFor="background-type">
               <select
                 id="background-type"
@@ -673,6 +784,76 @@ export function AppearanceInspector({
                   }}
                 />
               </>
+            ) : null}
+            {theme.background.type === "IMAGE" ? (
+              <>
+                <Field label={t("imageFit")} htmlFor="background-image-fit">
+                  <select
+                    id="background-image-fit"
+                    value={theme.background.fit}
+                    onChange={(event) => {
+                      if (theme.background.type !== "IMAGE") return;
+                      replace({
+                        background: {
+                          ...theme.background,
+                          fit: event.target.value as "cover" | "contain",
+                        },
+                      });
+                    }}
+                    className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
+                  >
+                    <option value="cover">{t("cover")}</option>
+                    <option value="contain">{t("contain")}</option>
+                  </select>
+                </Field>
+                <RangeField
+                  label={t("horizontalPosition")}
+                  value={theme.background.focalX}
+                  min={0}
+                  max={100}
+                  step={1}
+                  suffix="%"
+                  onChange={(focalX) => {
+                    if (theme.background.type !== "IMAGE") return;
+                    replace({
+                      background: { ...theme.background, focalX },
+                    });
+                  }}
+                />
+                <RangeField
+                  label={t("verticalPosition")}
+                  value={theme.background.focalY}
+                  min={0}
+                  max={100}
+                  step={1}
+                  suffix="%"
+                  onChange={(focalY) => {
+                    if (theme.background.type !== "IMAGE") return;
+                    replace({
+                      background: { ...theme.background, focalY },
+                    });
+                  }}
+                />
+              </>
+            ) : null}
+            {theme.background.type === "IMAGE" ||
+            theme.background.type === "VIDEO" ? (
+              <RangeField
+                label={t("mediaOpacity")}
+                value={theme.background.opacity}
+                min={10}
+                max={100}
+                step={1}
+                suffix="%"
+                onChange={(opacity) => {
+                  if (
+                    theme.background.type !== "IMAGE" &&
+                    theme.background.type !== "VIDEO"
+                  )
+                    return;
+                  replace({ background: { ...theme.background, opacity } });
+                }}
+              />
             ) : null}
             <ControlSection title={t("overlay")} premium>
               <ColorField

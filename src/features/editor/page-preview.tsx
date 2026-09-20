@@ -1,18 +1,21 @@
 "use client";
 
-import { ExternalLink, ImageIcon, Sparkles } from "lucide-react";
+import { BadgeCheck, ExternalLink, ImageIcon, Sparkles } from "lucide-react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { cn } from "~/lib/cn";
+import { ThemeMediaBackground } from "~/components/public/theme-media-background";
 import {
   avatarFrameStyle,
   avatarRadius,
   buttonMotionClass,
   buttonStyle,
-  themeBackgroundStyle,
   themeFontStack,
   themeOverlayStyle,
 } from "~/lib/theme-rendering";
+import { ThemeModeSurface } from "~/features/public/theme-mode-surface";
+import { VibeLayer } from "~/features/public/vibe-layer";
 import type {
   EditorBlock,
   EditorDocument,
@@ -33,7 +36,16 @@ function PreviewBlock({
 }: {
   block: EditorBlock;
   document: EditorDocument;
-  labels: { heading: string; text: string; social: string; link: string };
+  labels: {
+    heading: string;
+    text: string;
+    social: string;
+    link: string;
+    visitors: string;
+    option: string;
+    livePresence: string;
+    liveContent: string;
+  };
 }) {
   if (!block.enabled) return null;
   const config =
@@ -91,6 +103,26 @@ function PreviewBlock({
       </div>
     );
   }
+  if (block.type === "HIGHLIGHT") {
+    return <aside className="w-full rounded-2xl border border-current/15 bg-current/8 p-4 text-left"><strong className="block text-sm">{String(config.title ?? labels.heading)}</strong>{config.text ? <span className="mt-1 block text-xs opacity-75">{String(config.text)}</span>:null}</aside>;
+  }
+  if (block.type === "COUNTDOWN") {
+    return <section className="w-full rounded-2xl border border-current/15 bg-current/5 p-4"><p className="text-sm font-semibold">{String(config.title ?? labels.heading)}</p><div className="mt-3 grid grid-cols-4 gap-2">{["07d","12h","34m","56s"].map(value=><span key={value} className="rounded-xl bg-current/8 px-2 py-2 text-center text-sm font-semibold tabular-nums">{value}</span>)}</div></section>;
+  }
+  if (block.type === "VISITOR_COUNTER") {
+    return <div className="inline-flex items-center gap-2 rounded-full border border-current/15 bg-current/5 px-3 py-1.5 text-xs"><span className="size-2 rounded-full bg-current opacity-60"/>{String(config.label ?? labels.visitors)} <strong>—</strong></div>;
+  }
+  if (block.type === "SUPPORT") {
+    return <aside className="w-full px-4 py-3 text-left" style={buttonStyle(theme)}><strong className="block">{String(config.title ?? labels.link)}</strong>{config.description?<span className="mt-1 block text-xs opacity-70">{String(config.description)}</span>:null}</aside>;
+  }
+  if (block.type === "POLL") {
+    const options=Array.isArray(config.options)?config.options:[];
+    return <section className="w-full rounded-2xl border border-current/15 bg-current/5 p-4 text-left"><p className="font-semibold">{String(config.question ?? labels.heading)}</p><div className="mt-3 grid gap-2">{options.map((item,index)=>{const option=item as Record<string,unknown>;return <span key={index} className="rounded-xl border border-current/15 px-3 py-2 text-sm">{String(option.label ?? labels.option)}</span>;})}</div></section>;
+  }
+  if (["DISCORD","GITHUB","SPOTIFY","YOUTUBE","TWITCH"].includes(block.type)) {
+    return <section className="w-full rounded-2xl border border-current/15 bg-current/5 p-4 text-left"><span className="text-[10px] font-semibold tracking-wider uppercase opacity-55">{block.type}</span><p className="mt-1 text-sm font-semibold">{block.type === "DISCORD"?labels.livePresence:block.type === "GITHUB"?`@${String(config.username ?? "—")}`:block.type === "TWITCH"?String(config.channel ?? "—"):labels.liveContent}</p><div className="mt-3 h-2 overflow-hidden rounded-full bg-current/10"><div className="h-full w-2/3 rounded-full bg-current/40"/></div></section>;
+  }
+  if (block.type !== "LINK") return null;
   return (
     <a
       href={safePreviewHref(config.url)}
@@ -123,7 +155,12 @@ export function PagePreview({
   zoom,
 }: {
   document: EditorDocument;
-  profile: { displayName: string; bio: string | null };
+  profile: {
+    displayName: string;
+    bio: string | null;
+    avatarAssetId: string | null;
+    verified: boolean;
+  };
   device: PreviewDevice;
   zoom: number;
 }) {
@@ -145,37 +182,26 @@ export function PagePreview({
           transformOrigin: "top center",
         }}
       >
-        <div
+        <ThemeModeSurface
+          theme={theme}
           className={cn(
             "relative min-h-[720px] overflow-hidden",
             animated && "animate-theme-gradient",
           )}
           style={{
-            ...themeBackgroundStyle(theme),
-            color: theme.colors.text,
             fontFamily: themeFontStack(theme.typography.body.family),
             fontWeight: theme.typography.body.weight,
             fontSize: `${theme.typography.body.scale}%`,
             lineHeight: theme.typography.body.lineHeight,
           }}
         >
+          <ThemeMediaBackground theme={theme} assetBase="/api/media" />
+          <VibeLayer theme={theme} />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"
             style={themeOverlayStyle(theme)}
           />
-          {theme.effects.layer !== "none" ? (
-            <div
-              aria-hidden="true"
-              className={cn(
-                "pointer-events-none absolute inset-0 opacity-30",
-                theme.effects.layer === "stars" &&
-                  "bg-[radial-gradient(circle_at_20%_20%,currentColor_0_1px,transparent_1.5px)] bg-[size:28px_28px]",
-                theme.effects.layer === "waves" &&
-                  "bg-[radial-gradient(ellipse_at_top,currentColor_0,transparent_62%)]",
-              )}
-            />
-          ) : null}
           <div
             className={cn(
               "relative mx-auto flex min-h-[720px] flex-col",
@@ -199,31 +225,52 @@ export function PagePreview({
                   "rounded-2xl border border-current/15 bg-current/5 p-5 backdrop-blur-sm",
               )}
             >
-              <div style={avatarStyle} className="shrink-0">
-                <div
-                  className="flex size-full items-center justify-center bg-current/10 text-xl font-semibold"
-                  style={{ borderRadius: avatarRadius(theme) }}
-                >
-                  {profile.displayName.slice(0, 1).toUpperCase()}
-                </div>
+              <div style={avatarStyle} className="shrink-0 overflow-hidden">
+                {profile.avatarAssetId ? (
+                  <Image
+                    src={`/api/media/${profile.avatarAssetId}`}
+                    alt=""
+                    width={theme.avatar.size}
+                    height={theme.avatar.size}
+                    unoptimized
+                    className="size-full object-cover"
+                    style={{
+                      borderRadius: avatarRadius(theme),
+                      objectPosition: `${theme.avatar.cropX}% ${theme.avatar.cropY}%`,
+                      transform: `scale(${theme.avatar.zoom})`,
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="flex size-full items-center justify-center bg-current/10 text-xl font-semibold"
+                    style={{ borderRadius: avatarRadius(theme) }}
+                  >
+                    {profile.displayName.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
               </div>
               <div>
-                <h1
-                  className="text-xl"
-                  style={{
-                    fontFamily: themeFontStack(
-                      theme.typography.heading.family,
-                    ),
-                    fontWeight: theme.typography.heading.weight,
-                    letterSpacing: `${theme.typography.heading.letterSpacing}em`,
-                  }}
-                >
-                  {profile.displayName}
-                </h1>
+                <span className="inline-flex items-center gap-1.5">
+                  <h1
+                    className="text-xl"
+                    style={{
+                      fontFamily: themeFontStack(
+                        theme.typography.heading.family,
+                      ),
+                      fontWeight: theme.typography.heading.weight,
+                      letterSpacing: `${theme.typography.heading.letterSpacing}em`,
+                    }}
+                  >
+                    {profile.displayName}
+                  </h1>
+                  {profile.verified ? (
+                    <BadgeCheck className="size-5 fill-current" />
+                  ) : null}
+                </span>
                 {profile.bio ? (
                   <p
                     className="mt-1 max-w-sm text-sm"
-                    style={{ color: theme.colors.mutedText }}
+                    style={{ color: "var(--olnk-page-muted)" }}
                   >
                     {profile.bio}
                   </p>
@@ -240,6 +287,10 @@ export function PagePreview({
                   text: t("blockText"),
                   social: t("blockSocials"),
                   link: t("blockLink"),
+                  visitors: t("blockVisitorCounter"),
+                  option: t("pollOption"),
+                  livePresence: t("livePresencePreview"),
+                  liveContent: t("liveContentPreview"),
                 }}
               />
             ))}
@@ -249,7 +300,7 @@ export function PagePreview({
               </div>
             ) : null}
           </div>
-        </div>
+        </ThemeModeSurface>
       </div>
     </div>
   );

@@ -59,6 +59,11 @@ enum BlockType {
   EMAIL
   EMBED
   PRODUCT
+  HIGHLIGHT
+  VISITOR_COUNTER
+  SUPPORT
+  POLL
+  GITHUB
 }
 
 enum SubscriptionStatus {
@@ -85,14 +90,39 @@ enum ProcessingStatus {
 
 enum MediaStatus {
   PENDING
+  PROCESSING
   READY
   REJECTED
   DELETED
 }
 
+enum MediaKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  OTHER
+}
+
+enum MediaVariant {
+  ORIGINAL
+  OPTIMIZED
+  POSTER
+}
+
 enum StorageProviderKind {
   LOCAL
   S3
+}
+
+enum IntegrationProvider {
+  SPOTIFY
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ERROR
 }
 
 enum AnalyticsEventType {
@@ -138,34 +168,54 @@ enum DeletionStatus {
 }
 
 model User {
-  id                   String                @id @default(cuid())
-  name                 String?
-  email                String?               @unique
-  emailVerified        DateTime?
-  image                String?
-  role                 UserRole              @default(USER)
-  locale               String                @default("en")
-  timezone             String                @default("UTC")
-  status               AccountStatus         @default(ACTIVE)
-  onboardingStatus     OnboardingStatus      @default(NOT_STARTED)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  accounts             Account[]
-  sessions             Session[]
-  profiles             Profile[]
-  subscriptions        Subscription[]
-  usageCounters        UsageCounter[]
-  mediaAssets          MediaAsset[]
-  auditEntries         AuditLog[]            @relation("AuditActor")
-  securityEvents       SecurityEvent[]
-  deletionRequests     AccountDeletion[]
-  entitlementOverrides EntitlementOverride[]
-  createdPageVersions  PageVersion[]         @relation("PageVersionCreator")
-  reservedUsernames    ReservedUsername[]    @relation("ReservedUsernameCreator")
-  assignedCases        ModerationCase[]      @relation("ModerationAssignee")
-  moderationActions    ModerationAction[]    @relation("ModerationActor")
+  id                     String                  @id @default(cuid())
+  name                   String?
+  email                  String?                 @unique
+  emailVerified          DateTime?
+  image                  String?
+  role                   UserRole                @default(USER)
+  locale                 String                  @default("en")
+  timezone               String                  @default("UTC")
+  status                 AccountStatus           @default(ACTIVE)
+  onboardingStatus       OnboardingStatus        @default(NOT_STARTED)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  accounts               Account[]
+  sessions               Session[]
+  profiles               Profile[]
+  subscriptions          Subscription[]
+  usageCounters          UsageCounter[]
+  mediaAssets            MediaAsset[]
+  auditEntries           AuditLog[]              @relation("AuditActor")
+  securityEvents         SecurityEvent[]
+  deletionRequests       AccountDeletion[]
+  entitlementOverrides   EntitlementOverride[]
+  createdPageVersions    PageVersion[]           @relation("PageVersionCreator")
+  reservedUsernames      ReservedUsername[]      @relation("ReservedUsernameCreator")
+  assignedCases          ModerationCase[]        @relation("ModerationAssignee")
+  moderationActions      ModerationAction[]      @relation("ModerationActor")
+  integrationConnections IntegrationConnection[]
 
   @@index([status])
+}
+
+model IntegrationConnection {
+  id                   String              @id @default(cuid())
+  userId               String
+  provider             IntegrationProvider
+  status               IntegrationStatus   @default(ACTIVE)
+  providerAccountId    String?
+  encryptedCredentials Json
+  scopes               String[]
+  expiresAt            DateTime?
+  lastRefreshedAt      DateTime?
+  metadata             Json?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([provider, status])
 }
 
 model Account {
@@ -240,6 +290,18 @@ model Profile {
   @@index([status])
 }
 
+model PollVote {
+  id          String   @id @default(cuid())
+  blockId     String
+  optionKey   String   @db.VarChar(32)
+  visitorHash String   @db.VarChar(64)
+  createdAt   DateTime @default(now())
+  block       Block    @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@unique([blockId, visitorHash])
+  @@index([blockId, optionKey])
+}
+
 model UsernameHistory {
   id        String   @id @default(cuid())
   profileId String
@@ -290,14 +352,17 @@ model Block {
   config          Json
   position        Int
   enabled         Boolean               @default(true)
+  deletedAt       DateTime?
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   page            Page                  @relation(fields: [pageId], references: [id], onDelete: Cascade)
   analytics       BlockAnalyticsDaily[]
   analyticsEvents AnalyticsEvent[]
   reports         Report[]
+  pollVotes       PollVote[]
 
   @@index([pageId, position])
+  @@index([pageId, deletedAt])
 }
 
 model Theme {
@@ -461,25 +526,34 @@ model FeatureFlag {
 }
 
 model MediaAsset {
-  id           String              @id @default(cuid())
-  ownerId      String
-  provider     StorageProviderKind
-  bucket       String?
-  objectKey    String              @unique
-  originalName String?
-  mimeType     String
-  size         BigInt
-  width        Int?
-  height       Int?
-  checksum     String
-  status       MediaStatus         @default(PENDING)
-  private      Boolean             @default(true)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  owner        User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  avatarFor    Profile[]           @relation("ProfileAvatar")
+  id                  String              @id @default(cuid())
+  ownerId             String
+  provider            StorageProviderKind
+  bucket              String?
+  objectKey           String              @unique
+  originalName        String?
+  mimeType            String
+  kind                MediaKind           @default(IMAGE)
+  variant             MediaVariant        @default(ORIGINAL)
+  size                BigInt
+  width               Int?
+  height              Int?
+  durationMs          Int?
+  checksum            String
+  status              MediaStatus         @default(PENDING)
+  processingErrorCode String?
+  metadata            Json?
+  private             Boolean             @default(true)
+  sourceAssetId       String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  owner               User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  avatarFor           Profile[]           @relation("ProfileAvatar")
+  sourceAsset         MediaAsset?         @relation("MediaDerivatives", fields: [sourceAssetId], references: [id], onDelete: Cascade)
+  derivatives         MediaAsset[]        @relation("MediaDerivatives")
 
   @@index([ownerId, status])
+  @@index([sourceAssetId, variant])
 }
 
 model AnalyticsEvent {

@@ -45,6 +45,20 @@ const v1Fixture = {
 } as const;
 
 describe("ThemeConfig v2", () => {
+  it("hydrates night colors for existing v2 drafts", () => {
+    const previous = structuredClone(defaultThemeConfig) as Record<
+      string,
+      unknown
+    >;
+    const mode = previous.mode as Record<string, unknown>;
+    delete mode.darkColors;
+
+    const migrated = migrateThemeConfig(previous);
+
+    expect(migrated.mode.darkColors.background).toBe("#11111b");
+    expect(migrated.mode.darkColors.text).toBe("#f5f3ff");
+  });
+
   it("migrates v1 without changing visible colors and layout", () => {
     const migrated = migrateThemeConfig(v1Fixture);
 
