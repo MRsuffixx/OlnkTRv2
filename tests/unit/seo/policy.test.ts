@@ -54,7 +54,7 @@ describe("SEO policy", () => {
     expect(policy.host).toBe("https://olnk.tr");
     expect(policy.rules).toMatchObject({
       userAgent: "*",
-      allow: "/",
+      allow: ["/", "/api/assets/"],
       disallow: expect.arrayContaining([
         "/admin",
         "/api",

@@ -50,7 +50,7 @@ export function buildRobotsPolicy(appUrl: string): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
+      allow: ["/", "/api/assets/"],
       disallow: [...PRIVATE_PATHS],
     },
     sitemap: canonicalUrl("/sitemap.xml", appUrl),
