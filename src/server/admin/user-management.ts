@@ -214,6 +214,9 @@ export async function setUserSuspended(input: {
     if (!input.suspended && target.status !== "SUSPENDED") {
       throw new AppError("CONFLICT", "Only suspended users can be restored");
     }
+    if (input.suspended && target.status === "SUSPENDED") {
+      throw new AppError("CONFLICT", "The user is already suspended");
+    }
     if (
       input.suspended &&
       target.status !== "ACTIVE" &&
@@ -223,9 +226,15 @@ export async function setUserSuspended(input: {
     }
 
     const status = input.suspended ? "SUSPENDED" : "ACTIVE";
-    const user = await tx.user.update({
-      where: { id: target.id },
+    const transition = await tx.user.updateMany({
+      where: { id: target.id, status: target.status },
       data: { status },
+    });
+    if (transition.count !== 1) {
+      throw new AppError("CONFLICT", "The account changed during moderation");
+    }
+    const user = await tx.user.findUniqueOrThrow({
+      where: { id: target.id },
       include: { profiles: { select: { username: true } } },
     });
     if (input.suspended) {
@@ -305,10 +314,43 @@ export async function setProfileModeration(input: {
         "Only profiles under moderation hold can be restored",
       );
     }
-    const status = input.hidden ? "MODERATION_HOLD" : "ACTIVE";
-    const updated = await tx.profile.update({
-      where: { id: profile.id },
+    if (input.hidden && profile.status === "MODERATION_HOLD") {
+      throw new AppError("CONFLICT", "The profile is already under moderation hold");
+    }
+    const holdAudit = input.hidden
+      ? null
+      : await tx.auditLog.findFirst({
+          where: {
+            targetType: "Profile",
+            targetId: profile.id,
+            action: "PROFILE_MODERATION_HOLD",
+          },
+          orderBy: { createdAt: "desc" },
+          select: { metadata: true },
+        });
+    const previousStatus =
+      holdAudit?.metadata &&
+      typeof holdAudit.metadata === "object" &&
+      !Array.isArray(holdAudit.metadata) &&
+      "previousStatus" in holdAudit.metadata &&
+      ["DRAFT", "ACTIVE", "HIDDEN"].includes(
+        String(holdAudit.metadata.previousStatus),
+      )
+        ? (String(holdAudit.metadata.previousStatus) as
+            | "DRAFT"
+            | "ACTIVE"
+            | "HIDDEN")
+        : "HIDDEN";
+    const status = input.hidden ? "MODERATION_HOLD" : previousStatus;
+    const transition = await tx.profile.updateMany({
+      where: { id: profile.id, status: profile.status },
       data: { status },
+    });
+    if (transition.count !== 1) {
+      throw new AppError("CONFLICT", "The profile changed during moderation");
+    }
+    const updated = await tx.profile.findUniqueOrThrow({
+      where: { id: profile.id },
     });
     await Promise.all([
       tx.auditLog.create({
@@ -367,10 +409,17 @@ export async function changeUserRole(input: {
     if (!canAssignRole(actor.role, target.role, input.role)) {
       throw new AppError("FORBIDDEN", "You cannot assign this role");
     }
-    const user = await tx.user.update({
-      where: { id: target.id },
+    if (target.role === input.role) {
+      throw new AppError("CONFLICT", "The user already has this role");
+    }
+    const transition = await tx.user.updateMany({
+      where: { id: target.id, role: target.role },
       data: { role: input.role },
     });
+    if (transition.count !== 1) {
+      throw new AppError("CONFLICT", "The user role changed concurrently");
+    }
+    const user = await tx.user.findUniqueOrThrow({ where: { id: target.id } });
     await Promise.all([
       tx.auditLog.create({
         data: {

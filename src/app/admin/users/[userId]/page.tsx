@@ -14,7 +14,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { getLocale, getTranslations } from "next-intl/server";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { FormSubmitButton } from "~/components/auth/form-submit-button";
 import { Logo } from "~/components/shared/logo";
@@ -32,6 +32,27 @@ const roleOptions = ["USER", "MODERATOR", "ADMIN"] as const;
 
 function isAssignableRole(value: string): value is (typeof roleOptions)[number] {
   return roleOptions.some((role) => role === value);
+}
+
+function requireConfirmation(form: FormData): "CONFIRM" {
+  const value = String(form.get("confirmation"));
+  if (value !== "CONFIRM") throw new Error("Confirmation is required");
+  return value;
+}
+
+function getErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") return undefined;
+  if ("code" in error && typeof error.code === "string") return error.code;
+  if (
+    "data" in error &&
+    error.data &&
+    typeof error.data === "object" &&
+    "code" in error.data &&
+    typeof error.data.code === "string"
+  ) {
+    return error.data.code;
+  }
+  return undefined;
 }
 
 function formatBytes(bytes: bigint, locale: string) {
@@ -56,7 +77,11 @@ export default async function AdminUserPage({
     getTranslations("admin"),
     getLocale(),
   ]);
-  const detail = await api.admin.userDetail({ userId });
+  const detail = await api.admin.userDetail({ userId }).catch((error: unknown) => {
+    const code = getErrorCode(error);
+    if (code === "FORBIDDEN" || code === "NOT_FOUND") notFound();
+    throw error;
+  });
   const { user } = detail;
   const date = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
@@ -89,7 +114,7 @@ export default async function AdminUserPage({
       userId,
       suspended: String(form.get("suspended")) === "true",
       reason: String(form.get("reason")),
-      confirmation: "CONFIRM",
+      confirmation: requireConfirmation(form),
     });
     revalidatePath(`/admin/users/${userId}`);
     revalidatePath("/admin");
@@ -101,7 +126,7 @@ export default async function AdminUserPage({
       profileId: String(form.get("profileId")),
       hidden: String(form.get("hidden")) === "true",
       reason: String(form.get("reason")),
-      confirmation: "CONFIRM",
+      confirmation: requireConfirmation(form),
     });
     revalidatePath(`/admin/users/${userId}`);
     revalidatePath("/admin");
@@ -115,7 +140,7 @@ export default async function AdminUserPage({
       userId,
       role,
       reason: String(form.get("reason")),
-      confirmation: "CONFIRM",
+      confirmation: requireConfirmation(form),
     });
     revalidatePath(`/admin/users/${userId}`);
     revalidatePath("/admin");
@@ -127,7 +152,7 @@ export default async function AdminUserPage({
       userId,
       months: Number(form.get("months")),
       reason: String(form.get("reason")),
-      confirmation: "CONFIRM",
+      confirmation: requireConfirmation(form),
     });
     revalidatePath(`/admin/users/${userId}`);
     revalidatePath("/admin");

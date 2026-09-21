@@ -200,6 +200,17 @@ export const adminRouter = createTRPCRouter({
     .input(manualPremiumGrantSchema)
     .mutation(async ({ ctx, input }) => {
       requirePermission(ctx.session.user.role, "PLAN_MANAGE");
+      const target = await ctx.db.user.findUnique({
+        where: { id: input.userId },
+        select: { role: true },
+      });
+      if (!target) throw new AppError("NOT_FOUND", "User not found");
+      if (
+        input.userId === ctx.session.user.id ||
+        !canManageRole(ctx.session.user.role, target.role)
+      ) {
+        throw new AppError("FORBIDDEN", "You cannot manage this subscription");
+      }
       await limitStaffAction(ctx.session.user.id);
       const subscription = await grantManualPremium({
         ...input,

@@ -106,6 +106,36 @@ integration("staff user management", () => {
       reason: "Malware report confirmed",
       previousStatus: "ACTIVE",
     });
+
+    await setProfileModeration({
+      actorId: moderator.id,
+      profileId: profile.id,
+      hidden: false,
+      reason: "Review completed",
+    });
+    expect(
+      await db.profile.findUniqueOrThrow({ where: { id: profile.id } }),
+    ).toMatchObject({ status: "ACTIVE" });
+
+    await db.profile.update({
+      where: { id: profile.id },
+      data: { status: "HIDDEN" },
+    });
+    await setProfileModeration({
+      actorId: moderator.id,
+      profileId: profile.id,
+      hidden: true,
+      reason: "Reviewing an owner-hidden profile",
+    });
+    await setProfileModeration({
+      actorId: moderator.id,
+      profileId: profile.id,
+      hidden: false,
+      reason: "Review complete; preserve owner visibility",
+    });
+    expect(
+      await db.profile.findUniqueOrThrow({ where: { id: profile.id } }),
+    ).toMatchObject({ status: "HIDDEN" });
   });
 
   it("allows a super administrator to assign the moderator role", async () => {
@@ -135,6 +165,41 @@ integration("staff user management", () => {
       toRole: "MODERATOR",
       reason: "Joined the trust and safety team",
     });
+    await expect(
+      changeUserRole({
+        actorId: actor.id,
+        targetUserId: user.id,
+        role: "MODERATOR",
+        reason: "Duplicate assignment",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(
+      await db.auditLog.count({
+        where: { targetId: user.id, action: "USER_ROLE_CHANGED" },
+      }),
+    ).toBe(1);
+
+    const concurrent = await Promise.allSettled([
+      changeUserRole({
+        actorId: actor.id,
+        targetUserId: user.id,
+        role: "ADMIN",
+        reason: "Concurrent promotion",
+      }),
+      changeUserRole({
+        actorId: actor.id,
+        targetUserId: user.id,
+        role: "USER",
+        reason: "Concurrent demotion",
+      }),
+    ]);
+    expect(concurrent.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(concurrent.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(
+      await db.auditLog.count({
+        where: { targetId: user.id, action: "USER_ROLE_CHANGED" },
+      }),
+    ).toBe(2);
   });
 
   it("returns a scoped detail view only for lower-ranked users", async () => {
