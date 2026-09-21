@@ -1,5 +1,18 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { MarketingShell } from "~/components/marketing/marketing-shell";
+import { env } from "~/env";
+import { marketingMetadata } from "~/lib/seo-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("marketing");
+  return marketingMetadata({
+    title: t("privacyTitle"),
+    description: t("privacyMetaDescription"),
+    path: "/privacy",
+    appUrl: env.APP_URL,
+  });
+}
 export default async function PrivacyPage() {
   const t = await getTranslations("marketing");
   return (

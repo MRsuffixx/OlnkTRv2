@@ -6,3 +6,5 @@ export const envBoolean = z.preprocess((value) => {
   if (value.toLowerCase() === "false") return false;
   return value;
 }, z.boolean());
+
+export const googleSiteVerification = z.string().trim().min(6);

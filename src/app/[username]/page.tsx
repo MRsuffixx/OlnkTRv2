@@ -7,6 +7,7 @@ import { env } from "~/env";
 import { cacheGet, cacheKeys, cacheSet } from "~/server/cache";
 import { getPublicSnapshot } from "~/server/publishing/service";
 import { parsePublicationSnapshot } from "~/server/publishing/snapshot";
+import { canonicalUrl, isPublishedSnapshotIndexable } from "~/server/seo/policy";
 import { normalizeUsername, usernameSchema } from "~/server/profile/username";
 
 // Redis is the explicit cross-instance cache for published snapshots. Keep the
@@ -29,11 +30,44 @@ const load = cache(async (raw: string) => {
 export async function generateMetadata({ params }: PageProps<"/[username]">): Promise<Metadata> {
   const { username } = await params;
   const row = await load(username);
-  if (!row) return {};
+  if (!row) return { robots: { index: false, follow: false } };
   const snapshot = parsePublicationSnapshot(row.snapshot);
-  const title = snapshot.page.title ?? snapshot.profile.displayName;
-  const description = snapshot.page.description ?? snapshot.profile.bio ?? undefined;
-  return { title, description, alternates: { canonical: `${env.APP_URL}/${snapshot.profile.username}` }, openGraph: { type: "profile", title, description, url: `${env.APP_URL}/${snapshot.profile.username}` }, robots: snapshot.page.visibility === "UNLISTED" ? { index: false, follow: false } : undefined };
+  const title =
+    snapshot.seo.title ?? snapshot.page.title ?? snapshot.profile.displayName;
+  const description =
+    snapshot.seo.description ??
+    snapshot.page.description ??
+    snapshot.profile.bio ??
+    undefined;
+  const canonical = canonicalUrl(`/${normalizeUsername(username)}`, env.APP_URL);
+  const image = snapshot.seo.ogImageAssetId
+    ? canonicalUrl(`/api/assets/${snapshot.seo.ogImageAssetId}`, env.APP_URL)
+    : undefined;
+  const indexable = isPublishedSnapshotIndexable(snapshot);
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "profile",
+      siteName: "OlnkTR",
+      title,
+      description,
+      url: canonical,
+      images: image ? [{ url: image, alt: title }] : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
+    robots: {
+      index: indexable,
+      follow: indexable,
+      noarchive: !indexable,
+    },
+  };
 }
 
 export default async function PublicProfilePage({ params }: PageProps<"/[username]">) {

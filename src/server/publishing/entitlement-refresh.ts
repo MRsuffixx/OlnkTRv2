@@ -3,7 +3,7 @@ import { Prisma } from "../../../generated/prisma/client";
 import { cacheDelete, cacheKeys } from "~/server/cache";
 import { db } from "~/server/db";
 import { getUserEntitlements } from "~/server/entitlements/service";
-import { buildPublicationSnapshot } from "./snapshot";
+import { buildPublicationSnapshot, seoConfigSchema } from "./snapshot";
 import {
   effectiveBlocks,
   effectiveTheme,
@@ -41,6 +41,7 @@ export async function refreshPublicationEntitlements(userId: string) {
         description: page.description,
         visibility: page.visibility,
       },
+      seo: seoConfigSchema.parse(page.draft.seoConfig),
       theme: effectiveTheme(
         migrateThemeConfig(page.draft.themeConfig),
         grants,

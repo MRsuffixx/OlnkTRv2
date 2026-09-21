@@ -1,5 +1,6 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+import { googleSiteVerification } from "./lib/env-values.js";
 
 const envBoolean = z.preprocess((value) => {
   if (typeof value !== "string") return value;
@@ -15,6 +16,7 @@ const server = {
   AUTH_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_SITE_VERIFICATION: googleSiteVerification.optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_SECURE: envBoolean.default(false),
@@ -58,6 +60,7 @@ export const env = createEnv({
     AUTH_SECRET: process.env.AUTH_SECRET,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    GOOGLE_SITE_VERIFICATION: process.env.GOOGLE_SITE_VERIFICATION,
     SMTP_HOST: process.env.SMTP_HOST,
     SMTP_PORT: process.env.SMTP_PORT,
     SMTP_SECURE: process.env.SMTP_SECURE,

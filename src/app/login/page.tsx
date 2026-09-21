@@ -1,4 +1,5 @@
 import { ArrowRight, Mail } from "lucide-react";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -8,8 +9,11 @@ import { FormSubmitButton } from "~/components/auth/form-submit-button";
 import { Field } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { env } from "~/env";
+import { privateRouteMetadata } from "~/lib/seo-metadata";
 import { auth, signIn } from "~/server/auth";
 import { rateLimit } from "~/server/security/rate-limit";
+
+export const metadata: Metadata = privateRouteMetadata("Sign in");
 
 async function requestIp() {
   const incoming = await headers();

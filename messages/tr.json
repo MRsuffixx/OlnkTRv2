@@ -556,6 +556,8 @@
     "legalPlaceholder": "Bu belge ürün yer tutucusudur ve yayından önce yetkin hukuk danışmanları tarafından incelenmelidir.",
     "termsTitle": "Kullanım Koşulları",
     "privacyTitle": "Gizlilik Politikası"
+    ,"privacyMetaDescription": "OlnkTR'nin hesap verileri, herkese açık profiller, analizler ve gizlilik odaklı ürün altyapısına yaklaşımını öğrenin."
+    ,"termsMetaDescription": "OlnkTR hesaplarının, üretici sayfalarının, yayınlama araçlarının ve platform hizmetlerinin kullanım koşullarını okuyun."
   },
   "presets": {
     "studio": "Stüdyo",
@@ -602,6 +604,11 @@
     "audit": "Denetim kaydı",
     "typeConfirm": "CONFIRM yazın",
     "noUsers": "Aramanızla eşleşen kullanıcı yok.",
+    "userPagination": "Kullanıcı dizini sayfalama",
+    "userResults": "{total} kullanıcının {start}–{end} arası gösteriliyor",
+    "previousPage": "Önceki",
+    "nextPage": "Sonraki",
+    "pageOf": "{total} sayfanın {page}. sayfası",
     "noFailures": "Çözümlenmemiş iş hatası yok.",
     "target": "Hedef",
     "manualPremium": "Manuel Premium tanımla",

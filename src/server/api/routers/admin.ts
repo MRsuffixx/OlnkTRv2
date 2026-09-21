@@ -8,6 +8,10 @@ import {
   staffActionReasonSchema,
 } from "~/server/admin/user-management";
 import {
+  ADMIN_USERS_PAGE_SIZE,
+  resolveAdminUsersPagination,
+} from "~/server/admin/user-pagination";
+import {
   grantManualPremium,
   manualPremiumGrantSchema,
 } from "~/server/billing/manual-subscription";
@@ -58,9 +62,10 @@ export const adminRouter = createTRPCRouter({
         status: z
           .enum(["ACTIVE", "SUSPENDED", "DISABLED", "DELETION_PENDING"])
           .optional(),
+        page: z.number().int().positive().default(1),
       }),
     )
-    .query(({ ctx, input }) => {
+    .query(async ({ ctx, input }) => {
       const manageableRoles = roles.filter((role) =>
         canManageRole(ctx.session.user.role, role),
       );
@@ -68,31 +73,35 @@ export const adminRouter = createTRPCRouter({
         input.role && manageableRoles.includes(input.role)
           ? input.role
           : undefined;
-      return ctx.db.user.findMany({
-        where: {
-          role: requestedRole ?? { in: manageableRoles },
-          ...(input.status ? { status: input.status } : {}),
-          ...(input.query
-            ? {
-                OR: [
-                  { email: { contains: input.query, mode: "insensitive" } },
-                  { name: { contains: input.query, mode: "insensitive" } },
-                  {
-                    profiles: {
-                      some: {
-                        username: {
-                          contains: input.query,
-                          mode: "insensitive",
-                        },
+      const where = {
+        role: requestedRole ?? { in: manageableRoles },
+        ...(input.status ? { status: input.status } : {}),
+        ...(input.query
+          ? {
+              OR: [
+                { email: { contains: input.query, mode: "insensitive" as const } },
+                { name: { contains: input.query, mode: "insensitive" as const } },
+                {
+                  profiles: {
+                    some: {
+                      username: {
+                        contains: input.query,
+                        mode: "insensitive" as const,
                       },
                     },
                   },
-                ],
-              }
-            : {}),
-        },
-        take: 50,
-        orderBy: { createdAt: "desc" },
+                },
+              ],
+            }
+          : {}),
+      };
+      const total = await ctx.db.user.count({ where });
+      const pagination = resolveAdminUsersPagination(input.page, total);
+      const items = await ctx.db.user.findMany({
+        where,
+        skip: pagination.skip,
+        take: ADMIN_USERS_PAGE_SIZE,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
           id: true,
           name: true,
@@ -122,6 +131,13 @@ export const adminRouter = createTRPCRouter({
           },
         },
       });
+      return {
+        items,
+        total,
+        page: pagination.page,
+        pageCount: pagination.pageCount,
+        pageSize: pagination.pageSize,
+      };
     }),
 
   userDetail: staffProcedure

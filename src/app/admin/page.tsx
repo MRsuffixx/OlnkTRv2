@@ -19,6 +19,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { auth } from "~/server/auth";
+import { adminUsersPageHref } from "~/server/admin/user-pagination";
 import {
   hasPermission,
   hasRole,
@@ -52,13 +53,16 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         | "DISABLED"
         | "DELETION_PENDING")
     : undefined;
+  const parsedPage =
+    typeof params.page === "string" ? Number.parseInt(params.page, 10) : 1;
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const canConfigure = hasPermission(session.user.role, "FLAG_MANAGE");
   const canManagePlans = hasPermission(session.user.role, "PLAN_MANAGE");
   const canReadAudit = hasPermission(session.user.role, "AUDIT_READ");
   const canInspectJobs = hasRole(session.user.role, "ADMIN");
   const [users, permissionMatrix, flags, reserved, catalog, jobs, audit] =
     await Promise.all([
-      api.admin.users({ query, role, status }),
+      api.admin.users({ query, role, status, page }),
       api.admin.permissionMatrix(),
       canConfigure ? api.admin.flags() : Promise.resolve([]),
       canConfigure ? api.admin.reservedUsernames() : Promise.resolve([]),
@@ -192,7 +196,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               {t("clearFilters")}
             </Link>
           </form>
-          {users.length ? (
+          {users.items.length ? (
             <div className="overflow-hidden rounded-md border border-border bg-surface-raised shadow-xs">
               <div className="hidden grid-cols-[minmax(16rem,1.5fr)_minmax(10rem,1fr)_9rem_8rem_auto] gap-4 border-b border-border-subtle bg-muted/50 px-4 py-2.5 text-xs font-medium text-muted-foreground lg:grid">
                 <span>{t("account")}</span>
@@ -202,7 +206,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                 <span className="sr-only">{t("manageUser")}</span>
               </div>
               <div className="divide-y divide-border-subtle">
-                {users.map((user) => {
+                {users.items.map((user) => {
                   const label = user.name ?? user.email ?? user.id;
                   const profile = user.profiles[0];
                   const subscription = user.subscriptions[0];
@@ -271,6 +275,59 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               {t("noUsers")}
             </p>
           )}
+          {users.total > 0 ? (
+            <nav
+              aria-label={t("userPagination")}
+              className="flex flex-col gap-3 rounded-md border border-border-subtle bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p className="text-xs text-muted-foreground">
+                {t("userResults", {
+                  start: (users.page - 1) * users.pageSize + 1,
+                  end: Math.min(users.page * users.pageSize, users.total),
+                  total: users.total,
+                })}
+              </p>
+              <div className="flex items-center justify-between gap-2 sm:justify-end">
+                {users.page > 1 ? (
+                  <Link
+                    href={adminUsersPageHref({
+                      page: users.page - 1,
+                      query,
+                      role,
+                      status,
+                    })}
+                    className={buttonVariants({ variant: "secondary", size: "sm" })}
+                  >
+                    {t("previousPage")}
+                  </Link>
+                ) : (
+                  <span className={buttonVariants({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-45" })}>
+                    {t("previousPage")}
+                  </span>
+                )}
+                <span className="min-w-24 text-center text-xs font-medium text-muted-foreground">
+                  {t("pageOf", { page: users.page, total: users.pageCount })}
+                </span>
+                {users.page < users.pageCount ? (
+                  <Link
+                    href={adminUsersPageHref({
+                      page: users.page + 1,
+                      query,
+                      role,
+                      status,
+                    })}
+                    className={buttonVariants({ variant: "secondary", size: "sm" })}
+                  >
+                    {t("nextPage")}
+                  </Link>
+                ) : (
+                  <span className={buttonVariants({ variant: "secondary", size: "sm", className: "pointer-events-none opacity-45" })}>
+                    {t("nextPage")}
+                  </span>
+                )}
+              </div>
+            </nav>
+          ) : null}
         </section>
 
         <section className="space-y-4" aria-labelledby="permissions-title">

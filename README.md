@@ -45,6 +45,12 @@ See [system architecture](docs/architecture/overview.md), [flows](docs/architect
 
 Production startup rejects development billing/analytics secrets, partially configured Google/SMTP credentials, and incomplete S3 configuration. See `.env.example` for a copyable configuration.
 
+## Search publication and SEO
+
+Next.js serves a generated `/robots.txt` and `/sitemap.xml` from the trusted `APP_URL`. The sitemap includes public marketing pages and only active, published, indexable profiles; private, unlisted, moderated, suspended, and explicitly `noindex` pages are excluded. Marketing and public-profile routes provide canonical, Open Graph, Twitter, title, and description metadata, while dashboard, admin, onboarding, and authentication surfaces are marked `noindex`.
+
+Set production `APP_URL` to the public HTTPS origin. URL-prefix Search Console verification can use the optional `GOOGLE_SITE_VERIFICATION` token; Domain-property DNS verification requires no application secret. Follow the complete [Google Search publication checklist](docs/seo/google-search-console.md) after deployment to verify ownership, submit the sitemap, inspect the live URL, and request indexing.
+
 ## Development integrations
 
 - Mailpit captures magic links at <http://localhost:8025>; no development endpoint returns authentication tokens.

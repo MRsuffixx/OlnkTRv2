@@ -556,6 +556,8 @@
     "legalPlaceholder": "This document is a product placeholder and must be reviewed by qualified legal counsel before launch.",
     "termsTitle": "Terms of Service",
     "privacyTitle": "Privacy Policy"
+    ,"privacyMetaDescription": "Learn how OlnkTR approaches account data, public profiles, analytics, and privacy-conscious product infrastructure."
+    ,"termsMetaDescription": "Read the terms that govern use of OlnkTR accounts, creator pages, publishing tools, and platform services."
   },
   "presets": {
     "studio": "Studio",
@@ -602,6 +604,11 @@
     "audit": "Audit log",
     "typeConfirm": "Type CONFIRM",
     "noUsers": "No users matched your search.",
+    "userPagination": "User directory pagination",
+    "userResults": "Showing {start}–{end} of {total} users",
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "pageOf": "Page {page} of {total}",
     "noFailures": "No unresolved job failures.",
     "target": "Target",
     "manualPremium": "Manual Premium grant",

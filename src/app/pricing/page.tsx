@@ -1,9 +1,22 @@
 import { Check } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { MarketingShell } from "~/components/marketing/marketing-shell";
 import { Badge } from "~/components/ui/badge";
 import { buttonVariants } from "~/components/ui/button";
+import { env } from "~/env";
+import { marketingMetadata } from "~/lib/seo-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("marketing");
+  return marketingMetadata({
+    title: t("pricingTitle"),
+    description: t("pricingDescription"),
+    path: "/pricing",
+    appUrl: env.APP_URL,
+  });
+}
 export default async function PricingPage() {
   const [t, common] = await Promise.all([
     getTranslations("marketing"),

@@ -1,10 +1,23 @@
 import { ArrowRight, BarChart3, Layers3, Paintbrush, Send } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { MarketingShell } from "~/components/marketing/marketing-shell";
 import { ProductPreview } from "~/components/marketing/product-preview";
 import { buttonVariants } from "~/components/ui/button";
+import { env } from "~/env";
+import { marketingMetadata } from "~/lib/seo-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("marketing");
+  return marketingMetadata({
+    title: t("headline"),
+    description: t("subheadline"),
+    path: "/",
+    appUrl: env.APP_URL,
+  });
+}
 
 export default async function HomePage() {
   const t = await getTranslations("marketing");

@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "~/components/shell/dashboard-shell";
 import { api } from "~/trpc/server";
 import { auth } from "~/server/auth";
+import { privateRouteMetadata } from "~/lib/seo-metadata";
+
+export const metadata: Metadata = privateRouteMetadata("Dashboard");
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();

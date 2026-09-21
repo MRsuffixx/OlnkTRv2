@@ -1,6 +1,19 @@
 import { Blocks, Globe2, Paintbrush, ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { MarketingShell } from "~/components/marketing/marketing-shell";
+import { env } from "~/env";
+import { marketingMetadata } from "~/lib/seo-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("marketing");
+  return marketingMetadata({
+    title: t("featurePageTitle"),
+    description: t("featurePageDescription"),
+    path: "/features",
+    appUrl: env.APP_URL,
+  });
+}
 export default async function FeaturesPage() {
   const t = await getTranslations("marketing");
   const features = [

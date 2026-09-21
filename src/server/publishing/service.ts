@@ -4,7 +4,7 @@ import { cacheDelete, cacheKeys } from "~/server/cache";
 import { db } from "~/server/db";
 import { getUserEntitlements } from "~/server/entitlements/service";
 import { AppError } from "~/server/errors";
-import { buildPublicationSnapshot } from "./snapshot";
+import { buildPublicationSnapshot, seoConfigSchema } from "./snapshot";
 import { missingBlockFeatures } from "./block-entitlements";
 import { missingThemeFeatures } from "./theme-entitlements";
 import { migrateThemeConfig } from "./theme-v2";
@@ -21,6 +21,7 @@ export async function publishPage(userId: string, pageId: string) {
   if (!page?.draft) throw new AppError("NOT_FOUND", "Page draft not found");
 
   const theme = migrateThemeConfig(page.draft.themeConfig);
+  const seo = seoConfigSchema.parse(page.draft.seoConfig);
   const { grants } = await getUserEntitlements(userId);
   const missingFeatures = [
     ...new Set([
@@ -44,6 +45,7 @@ export async function publishPage(userId: string, pageId: string) {
     theme.background.type === "VIDEO"
       ? theme.background.posterAssetId
       : undefined,
+    seo.ogImageAssetId,
   ].filter((id): id is string => Boolean(id));
 
   if (themeAssetIds.length) {
@@ -72,6 +74,7 @@ export async function publishPage(userId: string, pageId: string) {
       description: page.description,
       visibility: page.visibility,
     },
+    seo,
     theme,
     blocks: page.blocks,
   });

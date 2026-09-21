@@ -16,12 +16,31 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { AppProviders } from "~/components/providers/app-providers";
+import { env } from "~/env";
 export const metadata: Metadata = {
+  metadataBase: new URL(env.APP_URL),
+  applicationName: "OlnkTR",
   title: {
     default: "OlnkTR",
     template: "%s · OlnkTR",
   },
   description: "Publish your links and content on one page.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "OlnkTR",
+    url: "/",
+    title: "OlnkTR",
+    description: "Publish your links and content on one customizable page.",
+  },
+  twitter: {
+    card: "summary",
+    title: "OlnkTR",
+    description: "Publish your links and content on one customizable page.",
+  },
+  verification: env.GOOGLE_SITE_VERIFICATION
+    ? { google: env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 export const viewport: Viewport = {
