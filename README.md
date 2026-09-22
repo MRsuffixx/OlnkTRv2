@@ -47,7 +47,7 @@ Production startup rejects development billing/analytics secrets, partially conf
 
 ## Search publication and SEO
 
-Next.js serves a generated `/robots.txt` and `/sitemap.xml` from the trusted `APP_URL`. The sitemap includes public marketing pages and only active, published, indexable profiles; private, unlisted, moderated, suspended, and explicitly `noindex` pages are excluded. Marketing and public-profile routes provide canonical, Open Graph, Twitter, title, and description metadata, while dashboard, admin, onboarding, and authentication surfaces are marked `noindex`.
+Next.js serves a generated `/robots.txt` and a sharded sitemap index at `/sitemap.xml` from the trusted `APP_URL`. The sitemap index separates marketing routes from bounded profile shards and includes only active, published, indexable profiles; private, unlisted, moderated, suspended, and explicitly `noindex` pages are excluded. Marketing and public-profile routes provide canonical, Open Graph, Twitter, title, and description metadata, while dashboard, admin, onboarding, and authentication surfaces are marked `noindex`.
 
 Set production `APP_URL` to the public HTTPS origin. URL-prefix Search Console verification can use the optional `GOOGLE_SITE_VERIFICATION` token; Domain-property DNS verification requires no application secret. Follow the complete [Google Search publication checklist](docs/seo/google-search-console.md) after deployment to verify ownership, submit the sitemap, inspect the live URL, and request indexing.
 

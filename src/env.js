@@ -16,7 +16,7 @@ const server = {
   AUTH_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_SITE_VERIFICATION: googleSiteVerification.optional(),
+  GOOGLE_SITE_VERIFICATION: googleSiteVerification,
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_SECURE: envBoolean.default(false),

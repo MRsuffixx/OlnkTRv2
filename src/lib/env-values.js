@@ -7,4 +7,7 @@ export const envBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
-export const googleSiteVerification = z.string().trim().min(6);
+export const googleSiteVerification = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().trim().min(6).optional(),
+);

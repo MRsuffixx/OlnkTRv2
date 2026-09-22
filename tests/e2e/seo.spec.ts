@@ -13,15 +13,25 @@ test("serves crawl policy, sitemap, canonical metadata, and mobile-safe content"
   expect(sitemapResponse.headers()["content-type"]).toContain("application/xml");
 
   const robots = await robotsResponse.text();
-  expect(robots).toContain("Disallow: /dashboard");
-  expect(robots).toContain("Disallow: /admin");
+  expect(robots).toContain("Disallow: /dashboard$");
+  expect(robots).toContain("Disallow: /dashboard/");
+  expect(robots).toContain("Disallow: /admin$");
+  expect(robots).toContain("Allow: /api/assets/");
   expect(robots).toContain("Sitemap: http://localhost:3000/sitemap.xml");
 
   const sitemap = await sitemapResponse.text();
-  expect(sitemap).toContain("<loc>http://localhost:3000/</loc>");
-  expect(sitemap).toContain("<loc>http://localhost:3000/features</loc>");
+  expect(sitemap).toContain("<sitemapindex");
+  expect(sitemap).toContain(
+    "<loc>http://localhost:3000/sitemaps/static.xml</loc>",
+  );
   expect(sitemap).not.toContain("/dashboard");
   expect(sitemap).not.toContain("/login");
+
+  const staticSitemap = await request.get("/sitemaps/static.xml");
+  expect(staticSitemap.ok()).toBe(true);
+  const staticXml = await staticSitemap.text();
+  expect(staticXml).toContain("<loc>http://localhost:3000/</loc>");
+  expect(staticXml).toContain("<loc>http://localhost:3000/features</loc>");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");

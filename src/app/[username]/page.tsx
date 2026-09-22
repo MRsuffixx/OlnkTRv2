@@ -18,11 +18,19 @@ const load = cache(async (raw: string) => {
   const parsedUsername = usernameSchema.safeParse(normalizeUsername(raw));
   if (!parsedUsername.success) return null;
   const username = parsedUsername.data;
-  const cached = await cacheGet<{ snapshot: unknown; profileId: string }>(cacheKeys.publicProfile(username));
-  if (cached) return cached;
+  const cached = await cacheGet<{
+    snapshot: unknown;
+    profileId: string;
+    visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  }>(cacheKeys.publicProfile(username));
+  if (cached?.visibility) return { ...cached, visibility: cached.visibility };
   const row = await getPublicSnapshot(username);
   if (!row) return null;
-  const value = { snapshot: row.version.snapshot, profileId: row.page.profile.id };
+  const value = {
+    snapshot: row.version.snapshot,
+    profileId: row.page.profile.id,
+    visibility: row.page.visibility,
+  };
   await cacheSet(cacheKeys.publicProfile(username), value, 300);
   return value;
 });
@@ -43,7 +51,7 @@ export async function generateMetadata({ params }: PageProps<"/[username]">): Pr
   const image = snapshot.seo.ogImageAssetId
     ? canonicalUrl(`/api/assets/${snapshot.seo.ogImageAssetId}`, env.APP_URL)
     : undefined;
-  const indexable = isPublishedSnapshotIndexable(snapshot);
+  const indexable = isPublishedSnapshotIndexable(snapshot, row.visibility);
   return {
     title,
     description,

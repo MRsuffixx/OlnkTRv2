@@ -32,19 +32,28 @@ describe("SEO policy", () => {
       isPublishedSnapshotIndexable({
         page: { visibility: "PUBLIC" },
         seo: { robots: "index,follow" },
-      }),
+      }, "PUBLIC"),
     ).toBe(true);
     expect(
       isPublishedSnapshotIndexable({
         page: { visibility: "UNLISTED" },
         seo: { robots: "index,follow" },
-      }),
+      }, "PUBLIC"),
     ).toBe(false);
     expect(
       isPublishedSnapshotIndexable({
         page: { visibility: "PUBLIC" },
         seo: { robots: "noindex,nofollow" },
-      }),
+      }, "PUBLIC"),
+    ).toBe(false);
+    expect(
+      isPublishedSnapshotIndexable(
+        {
+          page: { visibility: "PUBLIC" },
+          seo: { robots: "index,follow" },
+        },
+        "UNLISTED",
+      ),
     ).toBe(false);
   });
 
@@ -56,13 +65,18 @@ describe("SEO policy", () => {
       userAgent: "*",
       allow: ["/", "/api/assets/"],
       disallow: expect.arrayContaining([
-        "/admin",
-        "/api",
-        "/dashboard",
-        "/login",
-        "/onboarding",
-        "/verify-request",
+        "/admin$",
+        "/admin/",
+        "/api/",
+        "/dashboard$",
+        "/dashboard/",
+        "/login$",
+        "/onboarding$",
+        "/verify-request$",
       ]),
+    });
+    expect(policy.rules).not.toMatchObject({
+      disallow: expect.arrayContaining(["/admin", "/api", "/dashboard"]),
     });
   });
 });

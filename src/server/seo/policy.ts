@@ -9,12 +9,17 @@ const INDEXABLE_MARKETING_PATHS = [
 ] as const;
 
 const PRIVATE_PATHS = [
-  "/admin",
-  "/api",
-  "/dashboard",
-  "/login",
-  "/onboarding",
-  "/verify-request",
+  "/admin$",
+  "/admin/",
+  "/api/",
+  "/dashboard$",
+  "/dashboard/",
+  "/login$",
+  "/login/",
+  "/onboarding$",
+  "/onboarding/",
+  "/verify-request$",
+  "/verify-request/",
 ] as const;
 
 export function canonicalUrl(path: string, appUrl: string) {
@@ -38,8 +43,9 @@ export function buildStaticSitemapEntries(
 export function isPublishedSnapshotIndexable(snapshot: {
   page: { visibility: "PUBLIC" | "UNLISTED" | "PRIVATE" };
   seo?: { robots?: "index,follow" | "noindex,nofollow" };
-}) {
+}, currentVisibility: "PUBLIC" | "UNLISTED" | "PRIVATE" = snapshot.page.visibility) {
   return (
+    currentVisibility === "PUBLIC" &&
     snapshot.page.visibility === "PUBLIC" &&
     snapshot.seo?.robots !== "noindex,nofollow"
   );

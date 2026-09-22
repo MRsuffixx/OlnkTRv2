@@ -3,7 +3,7 @@ import { Prisma } from "../../../generated/prisma/client";
 import { cacheDelete, cacheKeys } from "~/server/cache";
 import { db } from "~/server/db";
 import { getUserEntitlements } from "~/server/entitlements/service";
-import { buildPublicationSnapshot, seoConfigSchema } from "./snapshot";
+import { buildPublicationSnapshot, parsePublicationSnapshot } from "./snapshot";
 import {
   effectiveBlocks,
   effectiveTheme,
@@ -21,13 +21,17 @@ export async function refreshPublicationEntitlements(userId: string) {
       include: {
         profile: { include: { avatarAsset: true } },
         draft: true,
+        publication: { include: { version: { select: { snapshot: true } } } },
         blocks: { where: { deletedAt: null } },
       },
     }),
   ]);
 
   for (const page of pages) {
-    if (!page.draft) continue;
+    if (!page.draft || !page.publication) continue;
+    const publishedSnapshot = parsePublicationSnapshot(
+      page.publication.version.snapshot,
+    );
     const snapshot = buildPublicationSnapshot({
       profile: {
         username: page.profile.username,
@@ -41,7 +45,7 @@ export async function refreshPublicationEntitlements(userId: string) {
         description: page.description,
         visibility: page.visibility,
       },
-      seo: seoConfigSchema.parse(page.draft.seoConfig),
+      seo: publishedSnapshot.seo,
       theme: effectiveTheme(
         migrateThemeConfig(page.draft.themeConfig),
         grants,

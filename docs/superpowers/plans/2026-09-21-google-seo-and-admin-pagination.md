@@ -41,12 +41,15 @@
 
 **Files:**
 - Create: `src/server/seo/policy.ts`
-- Create: `src/app/sitemap.ts`
+- Create: `src/app/sitemap.xml/route.ts`
+- Create: `src/app/sitemaps/[shard]/route.ts`
+- Create: `src/server/seo/sitemap.ts`
 - Create: `src/app/robots.ts`
 - Modify: `src/app/layout.tsx`
 - Modify: `src/app/[username]/page.tsx`
 - Test: `tests/unit/seo/policy.test.ts`
 - Test: `tests/unit/seo/routes.test.ts`
+- Test: `tests/unit/seo/sitemap.test.ts`
 
 **Interfaces:**
 - Produces: canonical URL helpers, `isSnapshotIndexable`, static sitemap entries, Next.js `MetadataRoute.Sitemap`, and `MetadataRoute.Robots`.

@@ -5,6 +5,7 @@ import {parseBlockConfig} from "./block-schemas";
 import {getUserEntitlements} from "~/server/entitlements/service";
 import {resolveEntitlement} from "~/server/entitlements/resolver";
 import {pageDraftUpdateSchema, type PageDraftUpdateInput} from "~/server/publishing/snapshot";
+import {cacheDelete,cacheKeys} from "~/server/cache";
 async function ownedPage(userId:string,pageId:string){const page=await db.page.findFirst({where:{id:pageId,profile:{userId}}});if(!page)throw new AppError("NOT_FOUND","Page not found");return page;}
 async function validateAssetOwnership(userId:string,type:string,config:unknown){if(type!=="IMAGE")return;const assetId=(config as {assetId:string}).assetId;if(!await db.mediaAsset.findFirst({where:{id:assetId,ownerId:userId,status:"READY"},select:{id:true}}))throw new AppError("VALIDATION_ERROR","Image asset is unavailable");}
 export async function createBlock(userId:string,input:{pageId:string;type:string;config:unknown}){await ownedPage(userId,input.pageId);const parsed=parseBlockConfig(input.type,input.config);await validateAssetOwnership(userId,input.type,parsed);const config=parsed as Prisma.InputJsonValue;const {grants}=await getUserEntitlements(userId);for(let attempt=0;attempt<3;attempt++){try{return await db.$transaction(async tx=>{const active={pageId:input.pageId,deletedAt:null};const [count,last]=await Promise.all([tx.block.count({where:active}),tx.block.aggregate({where:active,_max:{position:true}})]);if(!resolveEntitlement(grants,"BLOCKS",count).allowed)throw new AppError("PLAN_LIMIT_REACHED","Block limit reached");return tx.block.create({data:{pageId:input.pageId,type:input.type as never,config,position:(last._max.position??-1)+1}});},{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});}catch(error){if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==="P2034"&&attempt<2)continue;throw error;}}throw new AppError("CONFLICT","Please retry");}
@@ -30,10 +31,14 @@ export async function getOwnedDraft(userId: string, pageId: string) {
 
 export async function updateDraft(userId: string, input: PageDraftUpdateInput) {
   const parsed = pageDraftUpdateSchema.parse(input);
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const owned = await tx.page.findFirst({
       where: { id: parsed.pageId, profile: { userId } },
-      select: { id: true },
+      select: {
+        id: true,
+        visibility: true,
+        profile: { select: { username: true } },
+      },
     });
     if (!owned) throw new AppError("NOT_FOUND", "Page not found");
     const [page, draft] = await Promise.all([
@@ -53,6 +58,15 @@ export async function updateDraft(userId: string, input: PageDraftUpdateInput) {
         },
       }),
     ]);
-    return { page, draft };
+    return {
+      page,
+      draft,
+      previousVisibility: owned.visibility,
+      username: owned.profile.username,
+    };
   });
+  if (result.previousVisibility !== result.page.visibility) {
+    await cacheDelete(cacheKeys.publicProfile(result.username));
+  }
+  return { page: result.page, draft: result.draft };
 }

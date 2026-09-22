@@ -16,10 +16,11 @@ describe("envBoolean", () => {
 });
 
 describe("googleSiteVerification", () => {
-  it("accepts a non-empty token and rejects unsafe empty configuration", () => {
+  it("accepts a token, treats blank as disabled, and rejects short values", () => {
     expect(googleSiteVerification.parse("  verification-token  ")).toBe(
       "verification-token",
     );
+    expect(googleSiteVerification.parse("")).toBeUndefined();
     expect(() => googleSiteVerification.parse("short")).toThrow();
   });
 });

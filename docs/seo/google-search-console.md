@@ -5,7 +5,7 @@ OlnkTR generates its crawler files from the trusted `APP_URL` deployment setting
 - `https://your-domain.example/robots.txt`
 - `https://your-domain.example/sitemap.xml`
 
-The sitemap contains the public marketing routes and only active, published, indexable creator profiles. Drafts, private or unlisted pages, hidden or moderated profiles, inactive accounts, and published snapshots configured as `noindex,nofollow` are excluded.
+The root sitemap is a sitemap index. It points to a static marketing sitemap and automatically generated creator-profile shards of at most 1,000 publication candidates each, fetched in bounded batches. Profile shards contain only active, published, indexable creator profiles. Drafts, private or unlisted pages, hidden or moderated profiles, inactive accounts, and published snapshots configured as `noindex,nofollow` are excluded.
 
 ## Production prerequisites
 
@@ -55,5 +55,4 @@ An indexing request is not a ranking or inclusion guarantee. Google's [URL Inspe
 - Keep titles and descriptions useful and unique; avoid publishing thin or duplicated profile content.
 - Publish a page again after changing its SEO configuration so the immutable public snapshot receives the change.
 - Do not add draft/editor URLs or authenticated application routes to the sitemap.
-- When the sitemap approaches 50,000 URLs or 50 MB uncompressed, split it into sitemap files and submit a sitemap index as required by Google.
-
+- Monitor sitemap processing as the site grows. OlnkTR automatically adds bounded profile sitemap shards to the root sitemap index; each shard considers at most 1,000 publications and reads no more than 100 snapshots per database query.

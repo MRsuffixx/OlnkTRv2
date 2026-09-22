@@ -162,7 +162,12 @@ export async function getPublicSnapshot(username: string) {
     },
     select: {
       version: { select: { snapshot: true } },
-      page: { select: { profile: { select: { id: true } } } },
+      page: {
+        select: {
+          visibility: true,
+          profile: { select: { id: true } },
+        },
+      },
     },
   });
 }
