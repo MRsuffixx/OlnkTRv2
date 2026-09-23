@@ -2,34 +2,213 @@ import { z } from "zod";
 
 import { safeExternalUrlSchema } from "~/server/security/url";
 
-const link = z
+const schemaVersion = z.literal(1).default(1);
+
+export const basicIconSchema = z.enum([
+  "link",
+  "star",
+  "heart",
+  "play",
+  "shopping-bag",
+  "calendar",
+  "message-circle",
+  "external-link",
+]);
+
+const safeWebUrlSchema = safeExternalUrlSchema.refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === "https:" || protocol === "http:";
+}, "HTTP or HTTPS URL required");
+
+function record(value: unknown) {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+const link = z.preprocess(
+  (value) => {
+    const input = record(value);
+    return input
+      ? { schemaVersion: 1, variant: "standard", ...input }
+      : value;
+  },
+  z
   .object({
+    schemaVersion,
     title: z.string().trim().min(1).max(120),
     url: safeExternalUrlSchema,
-    description: z.string().max(240).optional(),
+    description: z.string().trim().max(240).optional(),
+    icon: basicIconSchema.optional(),
+    variant: z.enum(["standard", "compact"]).default("standard"),
+  })
+  .strict(),
+);
+const featuredLink = z
+  .object({
+    schemaVersion,
+    title: z.string().trim().min(1).max(120),
+    url: safeExternalUrlSchema,
+    description: z.string().trim().max(300).optional(),
+    icon: basicIconSchema.optional(),
+    assetId: z.string().cuid().optional(),
+    presentation: z.enum(["compact", "image", "spotlight"]).default("spotlight"),
   })
   .strict();
-const text = z.object({ text: z.string().trim().min(1).max(5000) }).strict();
-const heading = z
+const button = z
   .object({
+    schemaVersion,
+    title: z.string().trim().min(1).max(120),
+    url: safeExternalUrlSchema,
+    description: z.string().trim().max(240).optional(),
+    icon: basicIconSchema.optional(),
+    useGlobalStyle: z.boolean().default(true),
+    style: z.enum(["solid", "outline", "soft", "minimal"]).default("solid"),
+  })
+  .strict();
+const spacer = z
+  .object({
+    schemaVersion,
+    size: z.enum(["small", "medium", "large", "custom"]).default("medium"),
+    customPixels: z.number().int().min(4).max(160).optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.size === "custom" && value.customPixels === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["customPixels"],
+        message: "CUSTOM_SPACER_SIZE_REQUIRED",
+      });
+    }
+    if (value.size !== "custom" && value.customPixels !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["customPixels"],
+        message: "CUSTOM_SPACER_SIZE_NOT_ALLOWED",
+      });
+    }
+  });
+const adultLink = z
+  .object({
+    schemaVersion,
+    title: z.string().trim().min(1).max(120),
+    url: safeWebUrlSchema,
+    description: z.string().trim().max(240).optional(),
+    icon: basicIconSchema.optional(),
+    platformLabel: z.string().trim().min(1).max(80).optional(),
+    attestedAdult: z.literal(true),
+  })
+  .strict();
+const text = z.preprocess(
+  (value) => {
+    const input = record(value);
+    return input
+      ? { schemaVersion: 1, alignment: "inherit", ...input }
+      : value;
+  },
+  z
+    .object({
+      schemaVersion,
+      title: z.string().trim().min(1).max(120).optional(),
+      text: z.string().trim().min(1).max(5000),
+      alignment: z.enum(["inherit", "left", "center", "right"]).default("inherit"),
+    })
+    .strict(),
+);
+const heading = z.preprocess(
+  (value) => {
+    const input = record(value);
+    return input ? { schemaVersion: 1, ...input } : value;
+  },
+  z
+  .object({
+    schemaVersion,
     text: z.string().trim().min(1).max(200),
     level: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
   })
-  .strict();
-const divider = z.object({}).strict();
-const image = z
+  .strict(),
+);
+const divider = z.preprocess(
+  (value) => {
+    const input = record(value);
+    return input
+      ? { schemaVersion: 1, style: "line", thickness: 1, width: 100, ...input }
+      : value;
+  },
+  z
+    .object({
+      schemaVersion,
+      style: z.enum(["line", "dashed", "dotted", "space"]).default("line"),
+      thickness: z.number().int().min(1).max(8).default(1),
+      width: z.number().int().min(10).max(100).default(100),
+    })
+    .strict(),
+);
+const image = z.preprocess(
+  (value) => {
+    const input = record(value);
+    return input
+      ? {
+          schemaVersion: 1,
+          decorative: input.alt === "",
+          ...input,
+        }
+      : value;
+  },
+  z
   .object({
+    schemaVersion,
     assetId: z.string().cuid(),
-    alt: z.string().max(300),
+    alt: z.string().trim().max(300),
+    decorative: z.boolean().default(false),
     href: safeExternalUrlSchema.optional(),
   })
-  .strict();
-const socials = z
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.decorative && value.alt.length === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["alt"],
+        message: "IMAGE_ALT_REQUIRED",
+      });
+    }
+  }),
+);
+const socialProviderSchema = z.enum([
+  "custom",
+  "instagram",
+  "x",
+  "tiktok",
+  "github",
+  "discord",
+  "youtube",
+  "twitch",
+  "linkedin",
+  "telegram",
+  "facebook",
+  "website",
+]);
+const socials = z.preprocess(
+  (value) => {
+    const input = record(value);
+    if (!input) return value;
+    const items = Array.isArray(input.items)
+      ? input.items.map((item) => {
+          const social = record(item);
+          return social ? { provider: "custom", ...social } : item;
+        })
+      : input.items;
+    return { schemaVersion: 1, ...input, items };
+  },
+  z
   .object({
+    schemaVersion,
     items: z
       .array(
         z
           .object({
+            provider: socialProviderSchema.default("custom"),
             label: z.string().min(1).max(50),
             url: safeExternalUrlSchema,
           })
@@ -37,7 +216,8 @@ const socials = z
       )
       .max(30),
   })
-  .strict();
+  .strict(),
+);
 const highlight = z
   .object({
     title: z.string().trim().min(1).max(100),
@@ -147,6 +327,10 @@ const spotify = z.object({ resourceUrl: spotifyUrl }).strict();
 
 export const blockConfigSchemas = {
   LINK: link,
+  FEATURED_LINK: featuredLink,
+  BUTTON: button,
+  SPACER: spacer,
+  ADULT_LINK: adultLink,
   TEXT: text,
   HEADING: heading,
   DIVIDER: divider,

@@ -4,8 +4,10 @@ import { parseBlockConfig } from "~/server/page/block-schemas";
 describe("block configuration", () => {
   it("validates a link block", () => {
     expect(parseBlockConfig("LINK", { title: "Docs", url: "https://example.com" })).toEqual({
+      schemaVersion: 1,
       title: "Docs",
       url: "https://example.com/",
+      variant: "standard",
     });
   });
 

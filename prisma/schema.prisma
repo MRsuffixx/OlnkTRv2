@@ -42,6 +42,10 @@ enum PageVisibility {
 
 enum BlockType {
   LINK
+  FEATURED_LINK
+  BUTTON
+  SPACER
+  ADULT_LINK
   TEXT
   HEADING
   DIVIDER
