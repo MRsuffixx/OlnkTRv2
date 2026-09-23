@@ -19,6 +19,8 @@ Plans, features, relational plan entitlements, subscriptions, overrides, and usa
 
 Uploads use generated keys, size limits, signature detection, private-by-default media records, and a local/S3 provider boundary. Image dimensions are validated and short MP4/WebM backgrounds are probed and asynchronously converted to a muted H.264 loop plus WebP poster by FFmpeg. Analytics requests return 202 after queueing and workers persist minimal metadata plus daily aggregates. Visitor identifiers are daily salted hashes; raw IPs are not persisted.
 
+The page editor uses a versioned, provider-ready block platform. Free accounts can publish Link, Featured Link, Social Icons, Text, Heading, Divider, Image, Image Link, Button, Spacer, and Adult Link blocks within their normal block allowance. Every block is parsed by its own strict server schema before storage and again when a publication snapshot is read. Adult Link destinations are restricted to HTTP(S), are never fetched or previewed by OlnkTR, and require a per-profile browser-session age declaration before navigation. This declaration is a safety interstitial, not identity or legal-age verification.
+
 Security headers, same-origin redirects, Zod validation, central URL scheme allowlisting, Redis rate limiting, server ownership checks, structured redacted logs, audited admin mutations, session revocation, moderation records, and deletion-state models are included. PostgreSQL is always authoritative.
 
 Account deletion is a confirmed, queued workflow: a one-time token is emailed, confirmation immediately revokes sessions and changes the account state, and the maintenance worker removes profiles/assets and anonymizes the account after `ACCOUNT_DELETION_GRACE_DAYS`.
@@ -58,6 +60,7 @@ Set production `APP_URL` to the public HTTPS origin. URL-prefix Search Console v
 - Administrators with `PLAN_MANAGE` can grant 1–24 calendar months of Premium after an offline/IBAN payment. Grants extend from the later of now or the existing manual expiry, coexist with external subscriptions, append a subscription event, and write an audit record in the same serializable transaction.
 - Local uploads use the same `StorageProvider` contract as S3 and are mounted in the shared `uploads` Docker volume.
 - Admin APIs and `/admin` require an `ADMIN`/`SUPER_ADMIN` database role. Sensitive actions require typing `CONFIRM` and create audit records.
+- The seeded `ADULT_LINKS` feature flag is independent of plan entitlements and can disable new Adult Link creation and publication without deleting saved configuration. Adult-content, exploitation, and minor-safety reports are accepted by the moderation API; urgent safety reasons receive the highest review priority.
 - Spotify's redirect URI is `${APP_URL}/api/integrations/spotify/callback`. OAuth state is single-use in Redis; access and refresh tokens are AES-256-GCM encrypted at rest and never returned through tRPC.
 - GitHub, YouTube, Twitch, and Spotify public widgets read normalized Redis data. Cache misses enqueue provider refreshes; provider failures retain last-known data as stale instead of delaying or breaking the public page. Discord presence connects client-side to Lanyard with bounded reconnect and heartbeat handling.
 
