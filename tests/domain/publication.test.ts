@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPublicationSnapshot,
   parsePublicationSnapshot,
+  publicationContainsAdultLink,
 } from "~/server/publishing/snapshot";
 
 describe("publication snapshot", () => {
@@ -44,5 +45,48 @@ describe("publication snapshot", () => {
       schemaVersion: 1,
       robots: "index,follow",
     });
+  });
+
+  it("derives adult status only from enabled blocks in the publication snapshot", () => {
+    const input = {
+      profile: {
+        username: "creator",
+        displayName: "Creator",
+        bio: null,
+        avatarUrl: null,
+      },
+      page: {
+        title: null,
+        description: null,
+        visibility: "PUBLIC" as const,
+      },
+      theme: {
+        schemaVersion: 1,
+        colors: { background: "#ffffff", text: "#111111" },
+      },
+      blocks: [
+        {
+          id: "adult",
+          type: "ADULT_LINK",
+          enabled: false,
+          position: 0,
+          config: {
+            schemaVersion: 1,
+            title: "Adults only",
+            url: "https://example.com/adult",
+            attestedAdult: true,
+          },
+        },
+      ],
+    };
+
+    const withoutAdultLink = buildPublicationSnapshot(input);
+    expect(publicationContainsAdultLink(withoutAdultLink)).toBe(false);
+
+    const withAdultLink = buildPublicationSnapshot({
+      ...input,
+      blocks: input.blocks.map((block) => ({ ...block, enabled: true })),
+    });
+    expect(publicationContainsAdultLink(withAdultLink)).toBe(true);
   });
 });

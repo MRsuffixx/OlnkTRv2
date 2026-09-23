@@ -50,3 +50,9 @@ export function buildPublicationSnapshot(input: DraftInput) {
   };
   return Object.freeze(snapshot);
 }
+
+export function publicationContainsAdultLink(snapshot: {
+  blocks: ReadonlyArray<{ type: string }>;
+}) {
+  return snapshot.blocks.some((block) => block.type === "ADULT_LINK");
+}
