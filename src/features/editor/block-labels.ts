@@ -1,5 +1,9 @@
 export const blockTitleKeys = {
   LINK: "blockLink",
+  FEATURED_LINK: "blockFeaturedLink",
+  BUTTON: "blockButton",
+  SPACER: "blockSpacer",
+  ADULT_LINK: "blockAdultLink",
   TEXT: "blockText",
   HEADING: "blockHeading",
   DIVIDER: "blockDivider",
