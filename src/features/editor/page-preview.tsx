@@ -22,6 +22,10 @@ import type {
   PreviewDevice,
 } from "./editor-reducer";
 import { safePreviewHref } from "./preview-url";
+import {
+  BasicBlockPreview,
+  isBasicBlockType,
+} from "./preview/basic-block-preview";
 
 const widths: Record<PreviewDevice, string> = {
   mobile: "w-[375px]",
@@ -45,6 +49,9 @@ function PreviewBlock({
     option: string;
     livePresence: string;
     liveContent: string;
+    adult: string;
+    featured: string;
+    image: string;
   };
 }) {
   if (!block.enabled) return null;
@@ -53,6 +60,16 @@ function PreviewBlock({
       ? (block.config as Record<string, unknown>)
       : {};
   const theme = document.theme;
+  if (isBasicBlockType(block.type)) {
+    return (
+      <BasicBlockPreview
+        type={block.type}
+        config={config}
+        theme={theme}
+        labels={labels}
+      />
+    );
+  }
   if (block.type === "HEADING") {
     const Tag = config.level === 1 ? "h1" : config.level === 3 ? "h3" : "h2";
     return (
@@ -291,6 +308,9 @@ export function PagePreview({
                   option: t("pollOption"),
                   livePresence: t("livePresencePreview"),
                   liveContent: t("liveContentPreview"),
+                  adult: t("adultBadge"),
+                  featured: t("featuredBadge"),
+                  image: t("blockImage"),
                 }}
               />
             ))}

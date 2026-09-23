@@ -10,6 +10,8 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import type { EditorBlock } from "./editor-reducer";
 import { blockTitleKeys } from "./block-labels";
+import { BasicBlockInspector } from "./inspectors/basic-block-inspector";
+import { isBasicBlockType } from "./preview/basic-block-preview";
 
 export function BlockInspector({
   block,
@@ -45,117 +47,8 @@ export function BlockInspector({
         </div>
       </div>
       <div className="grid gap-5 p-4">
-        {block.type === "LINK" ? (
-          <>
-            <Field label={t("linkTitle")} htmlFor="block-title">
-              <Input
-                id="block-title"
-                value={String(config.title ?? "")}
-                onChange={(event) => patch({ title: event.target.value })}
-              />
-            </Field>
-            <Field
-              label={t("linkUrl")}
-              htmlFor="block-url"
-              description={t("safeUrlHelp")}
-            >
-              <Input
-                id="block-url"
-                inputMode="url"
-                value={String(config.url ?? "")}
-                onChange={(event) => patch({ url: event.target.value })}
-              />
-            </Field>
-            <Field
-              label={t("linkDescription")}
-              htmlFor="block-description"
-              optional={common("optional")}
-            >
-              <Textarea
-                id="block-description"
-                rows={3}
-                value={String(config.description ?? "")}
-                onChange={(event) =>
-                  patch({ description: event.target.value || undefined })
-                }
-              />
-            </Field>
-          </>
-        ) : null}
-        {block.type === "TEXT" ? (
-          <Field label={t("textContent")} htmlFor="block-text">
-            <Textarea
-              id="block-text"
-              rows={8}
-              value={String(config.text ?? "")}
-              onChange={(event) => patch({ text: event.target.value })}
-            />
-          </Field>
-        ) : null}
-        {block.type === "HEADING" ? (
-          <>
-            <Field label={t("headingText")} htmlFor="heading-text">
-              <Input
-                id="heading-text"
-                value={String(config.text ?? "")}
-                onChange={(event) => patch({ text: event.target.value })}
-              />
-            </Field>
-            <Field label={t("headingLevel")} htmlFor="heading-level">
-              <select
-                id="heading-level"
-                className="h-9 rounded-sm border border-border bg-surface-raised px-3 text-sm"
-                value={Number(config.level ?? 2)}
-                onChange={(event) =>
-                  patch({ level: Number(event.target.value) })
-                }
-              >
-                <option value={1}>H1</option>
-                <option value={2}>H2</option>
-                <option value={3}>H3</option>
-              </select>
-            </Field>
-          </>
-        ) : null}
-        {block.type === "DIVIDER" ? (
-          <p className="text-sm leading-6 text-muted-foreground">
-            {t("dividerDescription")}
-          </p>
-        ) : null}
-        {block.type === "IMAGE" ? (
-          <>
-            <Field label={t("imageAlt")} htmlFor="image-alt">
-              <Input
-                id="image-alt"
-                value={String(config.alt ?? "")}
-                onChange={(event) => patch({ alt: event.target.value })}
-              />
-            </Field>
-            <Field
-              label={t("linkUrl")}
-              htmlFor="image-href"
-              optional={common("optional")}
-            >
-              <Input
-                id="image-href"
-                inputMode="url"
-                value={String(config.href ?? "")}
-                onChange={(event) =>
-                  patch({ href: event.target.value || undefined })
-                }
-              />
-            </Field>
-          </>
-        ) : null}
-        {block.type === "SOCIALS" ? (
-          <SocialItems
-            items={
-              Array.isArray(config.items)
-                ? (config.items as Array<Record<string, unknown>>)
-                : []
-            }
-            onChange={(items) => patch({ items })}
-          />
+        {isBasicBlockType(block.type) ? (
+          <BasicBlockInspector block={block} onChange={onChange} />
         ) : null}
         {block.type === "HIGHLIGHT" ? (
           <>
@@ -227,83 +120,4 @@ function PollOptions({question,options,onChange}:{question:string;options:Array<
   const t=useTranslations("editor");
   const common=useTranslations("common");
   return <><Field label={t("pollQuestion")} htmlFor="poll-question"><Input id="poll-question" value={question} onChange={(event)=>onChange(event.target.value,options)}/></Field><div><div className="flex items-center justify-between"><p className="text-sm font-medium">{t("pollOptions")}</p><Button type="button" size="sm" variant="secondary" disabled={options.length>=6} onClick={()=>onChange(question,[...options,{key:`option-${Date.now().toString(36)}`,label:t("pollOption")}])}><Plus/>{t("addOption")}</Button></div><div className="mt-3 grid gap-2">{options.map((option,index)=><div key={option.key} className="flex gap-2"><Input aria-label={`${t("pollOption")} ${index+1}`} value={option.label} onChange={(event)=>onChange(question,options.map((item,itemIndex)=>itemIndex===index?{...item,label:event.target.value}:item))}/><IconButton label={common("delete")} disabled={options.length<=2} onClick={()=>onChange(question,options.filter((_,itemIndex)=>itemIndex!==index))}><Trash2/></IconButton></div>)}</div></div></>;
-}
-
-function SocialItems({
-  items,
-  onChange,
-}: {
-  items: Array<Record<string, unknown>>;
-  onChange: (items: Array<Record<string, unknown>>) => void;
-}) {
-  const t = useTranslations("editor");
-  const common = useTranslations("common");
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{t("socialLinks")}</p>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() =>
-            onChange([
-              ...items,
-              { label: t("blockSocials"), url: "https://example.com" },
-            ])
-          }
-        >
-          <Plus />
-          {t("addSocial")}
-        </Button>
-      </div>
-      <div className="mt-3 grid gap-3">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="grid grid-cols-[1fr_auto] gap-2 rounded-md border border-border p-3"
-          >
-            <div className="grid gap-2">
-              <Input
-                aria-label={t("socialLabel")}
-                value={String(item.label ?? "")}
-                onChange={(event) =>
-                  onChange(
-                    items.map((current, itemIndex) =>
-                      itemIndex === index
-                        ? { ...current, label: event.target.value }
-                        : current,
-                    ),
-                  )
-                }
-              />
-              <Input
-                aria-label={t("linkUrl")}
-                inputMode="url"
-                value={String(item.url ?? "")}
-                onChange={(event) =>
-                  onChange(
-                    items.map((current, itemIndex) =>
-                      itemIndex === index
-                        ? { ...current, url: event.target.value }
-                        : current,
-                    ),
-                  )
-                }
-              />
-            </div>
-            <IconButton
-              label={common("delete")}
-              className="text-danger"
-              onClick={() =>
-                onChange(items.filter((_, itemIndex) => itemIndex !== index))
-              }
-            >
-              <Trash2 />
-            </IconButton>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
