@@ -53,6 +53,8 @@ Next.js serves a generated `/robots.txt` and a sharded sitemap index at `/sitema
 
 Set production `APP_URL` to the public HTTPS origin. URL-prefix Search Console verification can use the optional `GOOGLE_SITE_VERIFICATION` token; Domain-property DNS verification requires no application secret. Follow the complete [Google Search publication checklist](docs/seo/google-search-console.md) after deployment to verify ownership, submit the sitemap, inspect the live URL, and request indexing.
 
+Docker also passes `APP_URL` as a build argument because Next.js resolves root metadata during the production build. Set it before `docker compose build`; custom image pipelines should pass `--build-arg APP_URL=https://your-domain.example`. Runtime `APP_URL` must match the same canonical origin.
+
 ## Development integrations
 
 - Mailpit captures magic links at <http://localhost:8025>; no development endpoint returns authentication tokens.
