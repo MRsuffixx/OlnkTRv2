@@ -802,6 +802,14 @@
     "linkTwo": "Read my notes",
     "linkThree": "Behind the scenes"
   },
+  "publicProfile": {
+    "adultBadge": "18+",
+    "adultDialogTitle": "Before you continue",
+    "adultDialogDescription": "This link leads to an external site with adult content. OlnkTR does not verify or control the destination.",
+    "adultConfirmation": "By continuing, you confirm that you are at least 18 years old and legally permitted to view this content.",
+    "adultCancel": "Go back",
+    "adultContinue": "Continue to external site"
+  },
   "errors": {
     "genericTitle": "Something went wrong",
     "genericDescription": "The page could not be loaded. Try again in a moment.",

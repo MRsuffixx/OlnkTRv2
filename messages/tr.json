@@ -802,6 +802,14 @@
     "linkTwo": "Notlarımı okuyun",
     "linkThree": "Kamera arkası"
   },
+  "publicProfile": {
+    "adultBadge": "18+",
+    "adultDialogTitle": "Devam etmeden önce",
+    "adultDialogDescription": "Bu bağlantı yetişkinlere yönelik içerik bulunan harici bir siteye yönlendirir. OlnkTR hedef siteyi doğrulamaz veya kontrol etmez.",
+    "adultConfirmation": "Devam ederek en az 18 yaşında olduğunuzu ve bu içeriği görüntülemenize yasal olarak izin verildiğini onaylarsınız.",
+    "adultCancel": "Geri dön",
+    "adultContinue": "Harici siteye devam et"
+  },
   "errors": {
     "genericTitle": "Bir sorun oluştu",
     "genericDescription": "Sayfa yüklenemedi. Biraz sonra tekrar deneyin.",

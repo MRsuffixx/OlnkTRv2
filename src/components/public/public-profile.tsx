@@ -1,6 +1,7 @@
 import { ArrowUpRight, BadgeCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 import {
   AnalyticsBeacon,
@@ -24,6 +25,11 @@ import { PollBlock } from "~/features/public/poll-block";
 import { VisitorCounterBlock } from "~/features/public/visitor-counter-block";
 import { ThemeModeSurface } from "~/features/public/theme-mode-surface";
 import { VibeLayer } from "~/features/public/vibe-layer";
+import {
+  isPublicBasicBlockType,
+  PublicBasicBlock,
+} from "~/features/public/basic-block";
+import type { AdultLinkLabels } from "~/features/public/adult-link-block";
 
 interface PublicSnapshot {
   profile: {
@@ -45,12 +51,24 @@ function PublicBlock({
   block,
   profileId,
   theme,
+  adultLabels,
 }: {
   block: PublicSnapshot["blocks"][number];
   profileId: string;
   theme: ThemeConfig;
+  adultLabels: AdultLinkLabels;
 }) {
   const config = block.config as Record<string, unknown>;
+  if (isPublicBasicBlockType(block.type)) {
+    return (
+      <PublicBasicBlock
+        block={block}
+        profileId={profileId}
+        theme={theme}
+        adultLabels={adultLabels}
+      />
+    );
+  }
   if (block.type === "HEADING") {
     const Tag = config.level === 1 ? "h1" : config.level === 3 ? "h3" : "h2";
     return (
@@ -258,7 +276,16 @@ export function PublicProfile({
   snapshot: PublicSnapshot;
   profileId: string;
 }) {
+  const t = useTranslations("publicProfile");
   const { theme, profile } = snapshot;
+  const adultLabels: AdultLinkLabels = {
+    badge: t("adultBadge"),
+    dialogTitle: t("adultDialogTitle"),
+    dialogDescription: t("adultDialogDescription"),
+    confirmation: t("adultConfirmation"),
+    cancel: t("adultCancel"),
+    continue: t("adultContinue"),
+  };
   const avatarStyle = avatarFrameStyle(theme);
   const profileHorizontal = theme.layout.profileLayout === "left-card";
   const socialBlocks = snapshot.blocks.filter(
@@ -275,6 +302,7 @@ export function PublicProfile({
             block={block}
             profileId={profileId}
             theme={theme}
+            adultLabels={adultLabels}
           />
         ))
       : null;
@@ -388,6 +416,7 @@ export function PublicProfile({
             block={block}
             profileId={profileId}
             theme={theme}
+            adultLabels={adultLabels}
           />
         ))}
         {renderSocials("bottom")}

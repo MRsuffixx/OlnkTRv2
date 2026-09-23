@@ -2,6 +2,7 @@ import { ExternalLink, ImageIcon, ShieldAlert, Star } from "lucide-react";
 import Image from "next/image";
 
 import { cn } from "~/lib/cn";
+import { basicSpacerHeight } from "~/lib/basic-block-rendering";
 import {
   buttonMotionClass,
   buttonStyle,
@@ -28,13 +29,7 @@ export function isBasicBlockType(type: string) {
 }
 
 export function spacerHeight(config: Record<string, unknown>) {
-  if (config.size === "small") return 12;
-  if (config.size === "large") return 56;
-  if (config.size === "custom") {
-    const value = typeof config.customPixels === "number" ? config.customPixels : 28;
-    return Math.min(160, Math.max(4, value));
-  }
-  return 28;
+  return basicSpacerHeight(config);
 }
 
 export function BasicBlockPreview({
