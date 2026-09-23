@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { publicationContainsAdultLink } from "~/server/publishing/snapshot";
+
 const INDEXABLE_MARKETING_PATHS = [
   "/",
   "/features",
@@ -49,6 +51,14 @@ export function isPublishedSnapshotIndexable(snapshot: {
     snapshot.page.visibility === "PUBLIC" &&
     snapshot.seo?.robots !== "noindex,nofollow"
   );
+}
+
+export function adultRatingMetadata(snapshot: {
+  blocks: ReadonlyArray<{ type: string }>;
+}) {
+  return publicationContainsAdultLink(snapshot)
+    ? { rating: "adult" as const }
+    : undefined;
 }
 
 export function buildRobotsPolicy(appUrl: string): MetadataRoute.Robots {

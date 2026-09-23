@@ -7,7 +7,11 @@ import { env } from "~/env";
 import { cacheGet, cacheKeys, cacheSet } from "~/server/cache";
 import { getPublicSnapshot } from "~/server/publishing/service";
 import { parsePublicationSnapshot } from "~/server/publishing/snapshot";
-import { canonicalUrl, isPublishedSnapshotIndexable } from "~/server/seo/policy";
+import {
+  adultRatingMetadata,
+  canonicalUrl,
+  isPublishedSnapshotIndexable,
+} from "~/server/seo/policy";
 import { normalizeUsername, usernameSchema } from "~/server/profile/username";
 
 // Redis is the explicit cross-instance cache for published snapshots. Keep the
@@ -75,6 +79,7 @@ export async function generateMetadata({ params }: PageProps<"/[username]">): Pr
       follow: indexable,
       noarchive: !indexable,
     },
+    other: adultRatingMetadata(snapshot),
   };
 }
 

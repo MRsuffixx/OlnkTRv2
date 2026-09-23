@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adultRatingMetadata,
   buildRobotsPolicy,
   buildStaticSitemapEntries,
   canonicalUrl,
@@ -78,5 +79,14 @@ describe("SEO policy", () => {
     expect(policy.rules).not.toMatchObject({
       disallow: expect.arrayContaining(["/admin", "/api", "/dashboard"]),
     });
+  });
+
+  it("marks only an active published Adult Link snapshot as adult content", () => {
+    expect(
+      adultRatingMetadata({
+        blocks: [{ type: "LINK" }, { type: "ADULT_LINK" }],
+      }),
+    ).toEqual({ rating: "adult" });
+    expect(adultRatingMetadata({ blocks: [{ type: "LINK" }] })).toBeUndefined();
   });
 });
