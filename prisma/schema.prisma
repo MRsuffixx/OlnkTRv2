@@ -146,6 +146,9 @@ enum ReportReason {
   MALWARE
   IMPERSONATION
   ABUSE
+  ADULT_CONTENT
+  EXPLOITATION
+  MINOR_SAFETY
   OTHER
 }
 
@@ -664,6 +667,7 @@ model Report {
   blockId        String?
   reporterHash   String?
   reason         ReportReason
+  priority       Int             @default(0)
   details        String?         @db.VarChar(1000)
   status         ReportStatus    @default(OPEN)
   createdAt      DateTime        @default(now())
@@ -671,7 +675,7 @@ model Report {
   block          Block?          @relation(fields: [blockId], references: [id], onDelete: SetNull)
   moderationCase ModerationCase?
 
-  @@index([status, createdAt])
+  @@index([status, priority, createdAt])
 }
 
 model ModerationCase {

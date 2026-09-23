@@ -4,6 +4,10 @@ import { cacheDelete, cacheKeys } from "~/server/cache";
 import { db } from "~/server/db";
 import { getUserEntitlements } from "~/server/entitlements/service";
 import { AppError } from "~/server/errors";
+import {
+  featureFlagKeys,
+  requireFeatureEnabled,
+} from "~/server/features/flags";
 import { buildPublicationSnapshot, seoConfigSchema } from "./snapshot";
 import { missingBlockFeatures } from "./block-entitlements";
 import { missingThemeFeatures } from "./theme-entitlements";
@@ -19,6 +23,14 @@ export async function publishPage(userId: string, pageId: string) {
     },
   });
   if (!page?.draft) throw new AppError("NOT_FOUND", "Page draft not found");
+
+  if (
+    page.blocks.some(
+      (block) => block.enabled && block.type === "ADULT_LINK",
+    )
+  ) {
+    await requireFeatureEnabled(featureFlagKeys.adultLinks);
+  }
 
   const theme = migrateThemeConfig(page.draft.themeConfig);
   const seo = seoConfigSchema.parse(page.draft.seoConfig);
@@ -82,7 +94,7 @@ export async function publishPage(userId: string, pageId: string) {
     .filter(
       (block) =>
         block.enabled &&
-        block.type === "IMAGE" &&
+        (block.type === "IMAGE" || block.type === "FEATURED_LINK") &&
         block.config &&
         typeof block.config === "object" &&
         "assetId" in block.config,
