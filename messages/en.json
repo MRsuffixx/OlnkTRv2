@@ -254,6 +254,7 @@
     "textContent": "Text",
     "headingText": "Heading text",
     "headingLevel": "Heading level",
+    "multipleH1Warning": "This page has more than one H1 heading. Keep one primary H1 and use H2 or H3 for sections to preserve a clear document structure.",
     "dividerDescription": "Dividers have no additional settings.",
     "imageAlt": "Alternative text",
     "socialLinks": "Social links",
@@ -665,6 +666,18 @@
     "audit": "Audit log",
     "typeConfirm": "Type CONFIRM",
     "noUsers": "No users matched your search.",
+    "moderationQueue": "Moderation queue",
+    "moderationQueueDescription": "Review reports in priority order, inspect validated block configuration, and take audited action.",
+    "moderationQueueEmpty": "There are no open reports.",
+    "noReportDetails": "No additional details were supplied.",
+    "reportedBlock": "Reported block · {type}",
+    "disableReportedBlock": "Disable block",
+    "hideReportedProfile": "Hide profile",
+    "restoreReportedProfile": "Restore profile",
+    "resolveReport": "Resolve only",
+    "dismissReport": "Dismiss report",
+    "applyModerationAction": "Apply action",
+    "openModerationCase": "Start review",
     "userPagination": "User directory pagination",
     "userResults": "Showing {start}–{end} of {total} users",
     "previousPage": "Previous",
@@ -803,12 +816,14 @@
     "linkThree": "Behind the scenes"
   },
   "publicProfile": {
+    "featured": "Featured",
     "adultBadge": "18+",
     "adultDialogTitle": "Before you continue",
     "adultDialogDescription": "This link leads to an external site with adult content. OlnkTR does not verify or control the destination.",
     "adultConfirmation": "By continuing, you confirm that you are at least 18 years old and legally permitted to view this content.",
     "adultCancel": "Go back",
-    "adultContinue": "Continue to external site"
+    "adultContinue": "Continue to external site",
+    "adultClose": "Close age confirmation"
   },
   "errors": {
     "genericTitle": "Something went wrong",

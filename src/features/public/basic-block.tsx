@@ -12,7 +12,11 @@ import {
 import Image from "next/image";
 
 import { PublicTrackedLink } from "~/app/[username]/analytics-beacon";
-import { basicSpacerHeight } from "~/lib/basic-block-rendering";
+import {
+  basicButtonStyleOverride,
+  basicSpacerHeight,
+  featuredPresentation,
+} from "~/lib/basic-block-rendering";
 import { cn } from "~/lib/cn";
 import {
   buttonMotionClass,
@@ -42,6 +46,7 @@ const defaultAdultLabels: AdultLinkLabels = {
   confirmation: "I confirm that I am at least 18 years old.",
   cancel: "Go back",
   continue: "Continue to external site",
+  close: "Close",
 };
 
 export function isPublicBasicBlockType(type: string) {
@@ -72,42 +77,12 @@ function BlockIcon({ name }: { name: unknown }) {
   }
 }
 
-function customButtonStyle(config: Record<string, unknown>) {
-  if (config.useGlobalStyle !== false) return undefined;
-  if (config.style === "outline") {
-    return {
-      background: "transparent",
-      color: "var(--olnk-page-text)",
-      border: "1px solid var(--olnk-page-border)",
-    };
-  }
-  if (config.style === "soft") {
-    return {
-      background:
-        "color-mix(in srgb, var(--olnk-page-button) 15%, transparent)",
-      color: "var(--olnk-page-text)",
-      border: "1px solid transparent",
-    };
-  }
-  if (config.style === "minimal") {
-    return {
-      background: "transparent",
-      color: "var(--olnk-page-text)",
-      border: "1px solid transparent",
-    };
-  }
-  return {
-    background: "var(--olnk-page-button)",
-    color: "var(--olnk-page-button-text)",
-    border: "1px solid transparent",
-  };
-}
-
 interface PublicBasicBlockProps {
   block: { id: string; type: string; config: unknown };
   profileId: string;
   theme: ThemeConfig;
   adultLabels?: AdultLinkLabels;
+  featuredLabel?: string;
 }
 
 export function PublicBasicBlock({
@@ -115,6 +90,7 @@ export function PublicBasicBlock({
   profileId,
   theme,
   adultLabels = defaultAdultLabels,
+  featuredLabel = "Featured",
 }: PublicBasicBlockProps) {
   const config = block.config as Record<string, unknown>;
 
@@ -217,7 +193,7 @@ export function PublicBasicBlock({
             profileId={profileId}
             blockId={block.id}
             href={item.url}
-            label={item.label}
+            aria-label={item.label}
             className="rounded-full border border-current/20 px-3 py-1.5 text-xs font-medium transition-[transform,opacity] hover:-translate-y-0.5 hover:opacity-80"
           >
             {item.label}
@@ -248,14 +224,21 @@ export function PublicBasicBlock({
     );
   }
   if (block.type === "FEATURED_LINK") {
+    const presentation = featuredPresentation(config);
     return (
       <PublicTrackedLink
         profileId={profileId}
         blockId={block.id}
         href={String(config.url)}
-        className="group relative block w-full overflow-hidden rounded-2xl border border-current/15 bg-current/8 p-5 text-left shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md"
+        data-presentation={presentation}
+        className={cn(
+          "group relative block w-full overflow-hidden border border-current/15 bg-current/8 text-left transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md",
+          presentation === "compact"
+            ? "rounded-xl p-3"
+            : "rounded-2xl p-5 shadow-sm",
+        )}
       >
-        {typeof config.assetId === "string" ? (
+        {presentation === "image" && typeof config.assetId === "string" ? (
           <Image
             src={`/api/assets/${config.assetId}`}
             alt=""
@@ -268,7 +251,7 @@ export function PublicBasicBlock({
         <span className="flex items-start justify-between gap-4">
           <span className="min-w-0">
             <span className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wider uppercase opacity-60">
-              <Star aria-hidden="true" className="size-3" /> Featured
+              <Star aria-hidden="true" className="size-3" /> {featuredLabel}
             </span>
             <strong className="flex items-center gap-2 text-base">
               <BlockIcon name={config.icon} />
@@ -290,7 +273,8 @@ export function PublicBasicBlock({
   }
   if (block.type !== "LINK" && block.type !== "BUTTON") return null;
 
-  const override = block.type === "BUTTON" ? customButtonStyle(config) : undefined;
+  const override =
+    block.type === "BUTTON" ? basicButtonStyleOverride(config) : undefined;
   return (
     <PublicTrackedLink
       profileId={profileId}

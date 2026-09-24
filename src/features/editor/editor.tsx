@@ -234,6 +234,7 @@ export function Editor({
             selectedBlock ? (
               <BlockInspector
                 block={selectedBlock}
+                blocks={state.document.blocks}
                 onChange={(config) =>
                   dispatch({
                     type: "block.updated",

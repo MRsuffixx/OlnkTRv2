@@ -5,6 +5,7 @@ import {
   Flag,
   KeyRound,
   Search,
+  ShieldAlert,
   ShieldCheck,
   UserRoundCog,
 } from "lucide-react";
@@ -60,10 +61,11 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const canManagePlans = hasPermission(session.user.role, "PLAN_MANAGE");
   const canReadAudit = hasPermission(session.user.role, "AUDIT_READ");
   const canInspectJobs = hasRole(session.user.role, "ADMIN");
-  const [users, permissionMatrix, flags, reserved, catalog, jobs, audit] =
+  const [users, permissionMatrix, moderationQueue, flags, reserved, catalog, jobs, audit] =
     await Promise.all([
       api.admin.users({ query, role, status, page }),
       api.admin.permissionMatrix(),
+      api.moderation.queue(),
       canConfigure ? api.admin.flags() : Promise.resolve([]),
       canConfigure ? api.admin.reservedUsernames() : Promise.resolve([]),
       canManagePlans ? api.admin.catalog() : Promise.resolve([]),
@@ -104,6 +106,24 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       featureKey: String(form.get("featureKey")),
       enabled: String(form.get("enabled")) === "true",
       limit: raw === "" ? null : Number(raw),
+      confirmation: "CONFIRM",
+    });
+    revalidatePath("/admin");
+  }
+  async function openModerationCase(form: FormData) {
+    "use server";
+    await api.moderation.openCase({ reportId: String(form.get("reportId")) });
+    revalidatePath("/admin");
+  }
+  async function moderate(form: FormData) {
+    "use server";
+    if (!confirmed(form)) return;
+    const type = String(form.get("type"));
+    if (!["HIDE_PROFILE", "RESTORE_PROFILE", "DISABLE_BLOCK", "RESOLVE", "DISMISS"].includes(type)) return;
+    await api.moderation.act({
+      caseId: String(form.get("caseId")),
+      type: type as "HIDE_PROFILE" | "RESTORE_PROFILE" | "DISABLE_BLOCK" | "RESOLVE" | "DISMISS",
+      reason: String(form.get("reason")),
       confirmation: "CONFIRM",
     });
     revalidatePath("/admin");
@@ -328,6 +348,73 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               </div>
             </nav>
           ) : null}
+        </section>
+
+        <section className="space-y-4" aria-labelledby="moderation-queue-title">
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="mt-0.5 size-4 text-warning" />
+            <div>
+              <h2 id="moderation-queue-title" className="text-base font-semibold">
+                {t("moderationQueue")}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("moderationQueueDescription")}
+              </p>
+            </div>
+          </div>
+          {moderationQueue.length ? (
+            <div className="space-y-3">
+              {moderationQueue.map((report) => (
+                <article key={report.id} className="rounded-md border border-border bg-surface-raised p-4 shadow-xs">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={report.priority >= 80 ? "danger" : report.priority >= 40 ? "warning" : "neutral"}>{report.reason}</Badge>
+                        <Badge>{report.status}</Badge>
+                        <span className="text-sm font-semibold">@{report.profile.username}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">{report.details || t("noReportDetails")}</p>
+                    </div>
+                    <time className="text-xs text-muted-foreground">{date.format(report.createdAt)}</time>
+                  </div>
+                  {report.block ? (
+                    <details className="mt-3 rounded-sm border border-border-subtle bg-surface p-3">
+                      <summary className="cursor-pointer text-xs font-semibold">
+                        {t("reportedBlock", { type: report.block.type })}
+                      </summary>
+                      <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs text-muted-foreground">
+                        {JSON.stringify(report.block.config, null, 2)}
+                      </pre>
+                    </details>
+                  ) : null}
+                  {report.moderationCase ? (
+                    <form action={moderate} className="mt-4 grid gap-2 md:grid-cols-[11rem_minmax(14rem,1fr)_9rem_auto]">
+                      <input type="hidden" name="caseId" value={report.moderationCase.id} />
+                      <select name="type" className="h-9 rounded-sm border border-border bg-surface px-3 text-sm" defaultValue={report.block ? "DISABLE_BLOCK" : "HIDE_PROFILE"}>
+                        {report.block ? <option value="DISABLE_BLOCK">{t("disableReportedBlock")}</option> : null}
+                        <option value="HIDE_PROFILE">{t("hideReportedProfile")}</option>
+                        {report.profile.status === "MODERATION_HOLD" ? <option value="RESTORE_PROFILE">{t("restoreReportedProfile")}</option> : null}
+                        <option value="RESOLVE">{t("resolveReport")}</option>
+                        <option value="DISMISS">{t("dismissReport")}</option>
+                      </select>
+                      <Input name="reason" minLength={3} maxLength={500} placeholder={t("actionReasonPlaceholder")} required />
+                      <Input name="confirmation" placeholder={t("typeConfirm")} pattern="CONFIRM" required />
+                      <Button variant="danger">{t("applyModerationAction")}</Button>
+                    </form>
+                  ) : (
+                    <form action={openModerationCase} className="mt-4">
+                      <input type="hidden" name="reportId" value={report.id} />
+                      <Button size="sm" variant="secondary">{t("openModerationCase")}</Button>
+                    </form>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              {t("moderationQueueEmpty")}
+            </p>
+          )}
         </section>
 
         <section className="space-y-4" aria-labelledby="permissions-title">

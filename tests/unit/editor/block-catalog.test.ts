@@ -53,6 +53,7 @@ const copy: Record<string, string> = {
   blockLiveNow: "Live now",
   blockOptionOne: "Option 1",
   blockOptionTwo: "Option 2",
+  blockCategoryAdult: "Mature destinations",
 };
 
 const translate = (key: string) => copy[key] ?? key;
@@ -99,6 +100,11 @@ describe("editor block catalog", () => {
     expect(searchBlockCatalog("adult", translate).map((entry) => entry.id)).toEqual([
       "adult-link",
     ]);
+    expect(
+      searchBlockCatalog("mature destinations", translate).map(
+        (entry) => entry.id,
+      ),
+    ).toEqual(["adult-link"]);
   });
 
   it("creates schema-valid defaults only after required setup", () => {

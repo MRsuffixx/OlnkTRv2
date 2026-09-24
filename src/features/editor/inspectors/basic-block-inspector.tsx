@@ -31,9 +31,11 @@ const iconOptions = [
 
 export function BasicBlockInspector({
   block,
+  hasMultipleH1 = false,
   onChange,
 }: {
   block: EditorBlock;
+  hasMultipleH1?: boolean;
   onChange: (config: unknown) => void;
 }) {
   const t = useTranslations("editor");
@@ -206,6 +208,11 @@ export function BasicBlockInspector({
               <option value={1}>H1</option><option value={2}>H2</option><option value={3}>H3</option>
             </select>
           </Field>
+          {hasMultipleH1 && config.level === 1 ? (
+            <p role="status" className="rounded-md border border-warning/30 bg-warning/8 p-3 text-xs leading-5 text-foreground">
+              {t("multipleH1Warning")}
+            </p>
+          ) : null}
         </>
       ) : null}
 

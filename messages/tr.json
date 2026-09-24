@@ -254,6 +254,7 @@
     "textContent": "Metin",
     "headingText": "Başlık metni",
     "headingLevel": "Başlık seviyesi",
+    "multipleH1Warning": "Bu sayfada birden fazla H1 başlığı var. Belge yapısını anlaşılır tutmak için tek bir ana H1 kullanın; bölümlerde H2 veya H3 seçin.",
     "dividerDescription": "Ayırıcıların ek ayarı yoktur.",
     "imageAlt": "Alternatif metin",
     "socialLinks": "Sosyal bağlantılar",
@@ -665,6 +666,18 @@
     "audit": "Denetim kaydı",
     "typeConfirm": "CONFIRM yazın",
     "noUsers": "Aramanızla eşleşen kullanıcı yok.",
+    "moderationQueue": "Moderasyon kuyruğu",
+    "moderationQueueDescription": "Bildirimleri öncelik sırasıyla inceleyin, doğrulanmış blok yapılandırmasını görün ve denetlenen işlemler uygulayın.",
+    "moderationQueueEmpty": "Açık bildirim yok.",
+    "noReportDetails": "Ek ayrıntı sağlanmadı.",
+    "reportedBlock": "Bildirilen blok · {type}",
+    "disableReportedBlock": "Bloğu devre dışı bırak",
+    "hideReportedProfile": "Profili gizle",
+    "restoreReportedProfile": "Profili geri yükle",
+    "resolveReport": "Yalnızca çözümle",
+    "dismissReport": "Bildirimi reddet",
+    "applyModerationAction": "İşlemi uygula",
+    "openModerationCase": "İncelemeyi başlat",
     "userPagination": "Kullanıcı dizini sayfalama",
     "userResults": "{total} kullanıcının {start}–{end} arası gösteriliyor",
     "previousPage": "Önceki",
@@ -803,12 +816,14 @@
     "linkThree": "Kamera arkası"
   },
   "publicProfile": {
+    "featured": "Öne çıkan",
     "adultBadge": "18+",
     "adultDialogTitle": "Devam etmeden önce",
     "adultDialogDescription": "Bu bağlantı yetişkinlere yönelik içerik bulunan harici bir siteye yönlendirir. OlnkTR hedef siteyi doğrulamaz veya kontrol etmez.",
     "adultConfirmation": "Devam ederek en az 18 yaşında olduğunuzu ve bu içeriği görüntülemenize yasal olarak izin verildiğini onaylarsınız.",
     "adultCancel": "Geri dön",
-    "adultContinue": "Harici siteye devam et"
+    "adultContinue": "Harici siteye devam et",
+    "adultClose": "Yaş onayını kapat"
   },
   "errors": {
     "genericTitle": "Bir sorun oluştu",

@@ -73,6 +73,36 @@ export async function publishPage(userId: string, pageId: string) {
     }
   }
 
+  const blockAssetIds = page.blocks
+    .filter(
+      (block) =>
+        block.enabled &&
+        (block.type === "IMAGE" || block.type === "FEATURED_LINK") &&
+        block.config &&
+        typeof block.config === "object" &&
+        "assetId" in block.config &&
+        typeof block.config.assetId === "string",
+    )
+    .map((block) => (block.config as { assetId: string }).assetId);
+
+  if (blockAssetIds.length) {
+    const assets = await db.mediaAsset.findMany({
+      where: {
+        id: { in: blockAssetIds },
+        ownerId: userId,
+        status: "READY",
+        kind: "IMAGE",
+      },
+      select: { id: true },
+    });
+    if (
+      new Set(assets.map((asset) => asset.id)).size !==
+      new Set(blockAssetIds).size
+    ) {
+      throw new AppError("VALIDATION_ERROR", "Block media is unavailable");
+    }
+  }
+
   const snapshot = buildPublicationSnapshot({
     profile: {
       username: page.profile.username,
@@ -90,16 +120,7 @@ export async function publishPage(userId: string, pageId: string) {
     theme,
     blocks: page.blocks,
   });
-  const publicAssetIds = page.blocks
-    .filter(
-      (block) =>
-        block.enabled &&
-        (block.type === "IMAGE" || block.type === "FEATURED_LINK") &&
-        block.config &&
-        typeof block.config === "object" &&
-        "assetId" in block.config,
-    )
-    .map((block) => (block.config as { assetId: string }).assetId);
+  const publicAssetIds = [...blockAssetIds];
   publicAssetIds.push(...themeAssetIds);
   if (page.profile.avatarAsset?.id) {
     publicAssetIds.push(page.profile.avatarAsset.id);

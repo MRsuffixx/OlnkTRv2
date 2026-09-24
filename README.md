@@ -9,7 +9,7 @@ OlnkTR is a passwordless Link-in-Bio SaaS foundation built as a modular monolith
 3. Run `pnpm install`, `pnpm db:migrate`, and `pnpm db:seed` when processes run on the host with reachable database/Redis URLs.
 4. Run `pnpm dev` and, in another terminal, `pnpm worker`.
 
-Mailpit is at <http://localhost:8025>. Request a magic link at `/login`, open the captured message, complete `/onboarding`, add a link at `/dashboard/content`, publish, then visit `/{username}`. Google appears only when both Google environment variables exist. Production never returns or logs magic-link tokens.
+Mailpit exposes SMTP on `localhost:1025` and its inbox at <http://localhost:8025>. Host-run development should use `SMTP_HOST=127.0.0.1`; containers use the `mailpit` service name. Request a magic link at `/login`, open the captured message, complete `/onboarding`, add a link at `/dashboard/content`, publish, then visit `/{username}`. Google appears only when both Google environment variables exist. Production never returns or logs magic-link tokens.
 
 ## Architecture and security
 
@@ -54,6 +54,8 @@ Next.js serves a generated `/robots.txt` and a sharded sitemap index at `/sitema
 Set production `APP_URL` to the public HTTPS origin. URL-prefix Search Console verification can use the optional `GOOGLE_SITE_VERIFICATION` token; Domain-property DNS verification requires no application secret. Follow the complete [Google Search publication checklist](docs/seo/google-search-console.md) after deployment to verify ownership, submit the sitemap, inspect the live URL, and request indexing.
 
 Docker also passes `APP_URL` as a build argument because Next.js resolves root metadata during the production build. Set it before `docker compose build`; custom image pipelines should pass `--build-arg APP_URL=https://your-domain.example`. Runtime `APP_URL` must match the same canonical origin.
+
+The provided Compose deployment sets `AUTH_TRUST_HOST=true` because its published app port or upstream reverse proxy is the trusted ingress boundary. Deployments that allow untrusted direct traffic must restrict accepted host headers at the proxy before enabling this setting.
 
 ## Development integrations
 

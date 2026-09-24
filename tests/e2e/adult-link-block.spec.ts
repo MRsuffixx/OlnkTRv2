@@ -98,8 +98,12 @@ test("adult links require session-scoped confirmation before navigation", async 
   await firstPopup.close();
   await expect.poll(() => blockClicks).toBe(1);
   const consentEntries = await page.evaluate(() =>
-    Object.entries(sessionStorage).filter(([key]) =>
-      key.startsWith("olnk:adult-consent:v1:"),
+    Array.from({ length: sessionStorage.length }, (_, index) => {
+      const key = sessionStorage.key(index);
+      return key ? ([key, sessionStorage.getItem(key)] as const) : null;
+    }).filter(
+      (entry): entry is readonly [string, string | null] =>
+        Boolean(entry?.[0].startsWith("olnk:adult-consent:v1:")),
     ),
   );
   expect(consentEntries).toHaveLength(1);

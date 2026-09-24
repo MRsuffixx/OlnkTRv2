@@ -2,7 +2,11 @@ import { ExternalLink, ImageIcon, ShieldAlert, Star } from "lucide-react";
 import Image from "next/image";
 
 import { cn } from "~/lib/cn";
-import { basicSpacerHeight } from "~/lib/basic-block-rendering";
+import {
+  basicButtonStyleOverride,
+  basicSpacerHeight,
+  featuredPresentation,
+} from "~/lib/basic-block-rendering";
 import {
   buttonMotionClass,
   buttonStyle,
@@ -173,11 +177,29 @@ export function BasicBlockPreview({
     );
   }
   if (type === "FEATURED_LINK") {
+    const presentation = featuredPresentation(config);
+    const assetId = typeof config.assetId === "string" ? config.assetId : null;
     return (
       <div
         data-block-preview="featured-link"
-        className="relative w-full overflow-hidden rounded-2xl border border-current/15 bg-current/8 p-5 text-left shadow-sm"
+        data-presentation={presentation}
+        className={cn(
+          "relative w-full overflow-hidden border border-current/15 bg-current/8 text-left",
+          presentation === "compact"
+            ? "rounded-xl p-3"
+            : "rounded-2xl p-5 shadow-sm",
+        )}
       >
+        {presentation === "image" && assetId ? (
+          <Image
+            src={`/api/media/${assetId}`}
+            alt=""
+            width={960}
+            height={540}
+            unoptimized
+            className="mb-4 aspect-video w-full rounded-xl object-cover"
+          />
+        ) : null}
         <div className="flex items-start justify-between gap-4">
           <span>
             <span className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wider uppercase opacity-60">
@@ -222,7 +244,10 @@ export function BasicBlockPreview({
           "flex w-full items-center justify-between gap-3 px-4 font-medium transition-[transform,filter,box-shadow,background-color] duration-200",
           buttonMotionClass(theme),
         )}
-        style={buttonStyle(theme)}
+        style={{
+          ...buttonStyle(theme),
+          ...(type === "BUTTON" ? basicButtonStyleOverride(config) : undefined),
+        }}
       >
         <span className="min-w-0">
           <span className="block truncate">{String(config.title ?? labels.link)}</span>

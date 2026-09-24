@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adultConsentKey,
   adultDestinationAttributes,
+  getAdultConsentStorage,
   hasAdultConsent,
   rememberAdultConsent,
 } from "~/features/public/adult-consent";
@@ -39,6 +40,13 @@ describe("adult link consent", () => {
     };
     expect(hasAdultConsent(unavailable, "profile-a")).toBe(false);
     expect(rememberAdultConsent(unavailable, "profile-a")).toBe(false);
+    expect(
+      getAdultConsentStorage(() => {
+        throw new Error("SecurityError");
+      }),
+    ).toBeNull();
+    expect(hasAdultConsent(null, "profile-a")).toBe(false);
+    expect(rememberAdultConsent(null, "profile-a")).toBe(false);
   });
 
   it("uses privacy-preserving external navigation attributes", () => {

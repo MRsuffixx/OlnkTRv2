@@ -100,7 +100,7 @@ describe("Next.js SEO routes", () => {
 
   it("serves a root sitemap index and crawler policy", async () => {
     mocks.count.mockResolvedValue(1_001);
-    const { GET } = await import("~/app/sitemap.xml/route");
+    const { GET } = await import("~/app/sitemap-index/route");
     const { default: robots } = await import("~/app/robots");
     const index = await GET();
     const xml = await index.text();

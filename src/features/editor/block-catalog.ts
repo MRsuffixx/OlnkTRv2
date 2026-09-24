@@ -10,6 +10,16 @@ export const blockCategories = [
 ] as const;
 
 export type BlockCategory = (typeof blockCategories)[number];
+export const blockCategoryLabelKeys: Record<BlockCategory, string> = {
+  basic: "blockCategoryBasic",
+  media: "blockCategoryMedia",
+  contact: "blockCategoryContact",
+  social: "blockCategorySocial",
+  monetization: "blockCategoryMonetization",
+  professional: "blockCategoryProfessional",
+  gaming: "blockCategoryGaming",
+  adult: "blockCategoryAdult",
+};
 export type BlockAvailability = "FREE" | "PREMIUM";
 export type BlockSetup = "image" | "adult-attestation";
 export type BlockCatalogIcon =
@@ -79,7 +89,12 @@ export function searchBlockCatalog(query: string, translate: Translate) {
   const normalized = query.trim().toLocaleLowerCase();
   if (!normalized) return [...blockCatalog];
   return blockCatalog.filter((entry) =>
-    [translate(entry.labelKey), translate(entry.descriptionKey), ...entry.keywords]
+    [
+      translate(entry.labelKey),
+      translate(entry.descriptionKey),
+      translate(blockCategoryLabelKeys[entry.category]),
+      ...entry.keywords,
+    ]
       .join(" ")
       .toLocaleLowerCase()
       .includes(normalized),

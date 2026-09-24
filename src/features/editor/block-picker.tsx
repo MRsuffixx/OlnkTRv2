@@ -44,10 +44,10 @@ import {
 import { Input } from "~/components/ui/input";
 import {
   blockCategories,
+  blockCategoryLabelKeys,
   defaultBlockConfig,
   searchBlockCatalog,
   type BlockCatalogIcon,
-  type BlockCategory,
   type EditorBlockPreset,
 } from "./block-catalog";
 
@@ -73,17 +73,6 @@ const icons: Record<BlockCatalogIcon, LucideIcon> = {
   youtube: Play,
   twitch: Radio,
   adult: ShieldAlert,
-};
-
-const categoryKeys: Record<BlockCategory, string> = {
-  basic: "blockCategoryBasic",
-  media: "blockCategoryMedia",
-  contact: "blockCategoryContact",
-  social: "blockCategorySocial",
-  monetization: "blockCategoryMonetization",
-  professional: "blockCategoryProfessional",
-  gaming: "blockCategoryGaming",
-  adult: "blockCategoryAdult",
 };
 
 export function BlockPicker({
@@ -239,7 +228,7 @@ export function BlockPicker({
                   <section key={category} className="mb-4 last:mb-0">
                     <div className="mb-1 flex items-center gap-2 px-2 pt-2">
                       <p className="text-[10px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-                        {t(categoryKeys[category] as never)}
+                      {t(blockCategoryLabelKeys[category] as never)}
                       </p>
                       {category === "adult" ? (
                         <Badge variant="warning" className="px-1.5 py-0 text-[9px]">

@@ -3,26 +3,37 @@ interface AdultConsentStorage {
   setItem(key: string, value: string): void;
 }
 
+export function getAdultConsentStorage(
+  getStorage: () => AdultConsentStorage,
+): AdultConsentStorage | null {
+  try {
+    return getStorage();
+  } catch {
+    return null;
+  }
+}
+
 export function adultConsentKey(profileId: string) {
   return `olnk:adult-consent:v1:${profileId}`;
 }
 
 export function hasAdultConsent(
-  storage: AdultConsentStorage,
+  storage: AdultConsentStorage | null | undefined,
   profileId: string,
 ) {
   try {
-    return storage.getItem(adultConsentKey(profileId)) === "confirmed";
+    return storage?.getItem(adultConsentKey(profileId)) === "confirmed";
   } catch {
     return false;
   }
 }
 
 export function rememberAdultConsent(
-  storage: AdultConsentStorage,
+  storage: AdultConsentStorage | null | undefined,
   profileId: string,
 ) {
   try {
+    if (!storage) return false;
     storage.setItem(adultConsentKey(profileId), "confirmed");
     return true;
   } catch {

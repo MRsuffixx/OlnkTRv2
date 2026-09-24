@@ -14,7 +14,7 @@ services:
   mailpit:
     image: axllent/mailpit:v1.27
     restart: unless-stopped
-    ports: ["8025:8025"]
+    ports: ["1025:1025", "8025:8025"]
   migrate:
     build: {context: ., target: builder, args: {APP_URL: "${APP_URL:-http://localhost:3000}"}}
     restart: "no"
@@ -26,7 +26,7 @@ services:
     build: {context: ., target: runner, args: {APP_URL: "${APP_URL:-http://localhost:3000}"}}
     restart: unless-stopped
     env_file: [.env]
-    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: "${SMTP_HOST:-mailpit}", SMTP_PORT: "${SMTP_PORT:-1025}", APP_URL: "${APP_URL:-http://localhost:3000}", AUTH_URL: "${APP_URL:-http://localhost:3000}", STORAGE_PUBLIC_URL: "${STORAGE_PUBLIC_URL:-http://localhost:3000/uploads}", INTEGRATION_ENCRYPTION_KEY: "${INTEGRATION_ENCRYPTION_KEY:-}"}
+    environment: {DATABASE_URL: postgresql://olnk:olnk_dev@postgres:5432/olnktr, REDIS_URL: redis://redis:6379, SMTP_HOST: "${SMTP_HOST:-mailpit}", SMTP_PORT: "${SMTP_PORT:-1025}", APP_URL: "${APP_URL:-http://localhost:3000}", AUTH_URL: "${APP_URL:-http://localhost:3000}", AUTH_TRUST_HOST: "${AUTH_TRUST_HOST:-true}", STORAGE_PUBLIC_URL: "${STORAGE_PUBLIC_URL:-http://localhost:3000/uploads}", INTEGRATION_ENCRYPTION_KEY: "${INTEGRATION_ENCRYPTION_KEY:-}"}
     ports: ["3000:3000"]
     volumes: [uploads:/app/data/uploads]
     depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}, migrate: {condition: service_completed_successfully}}

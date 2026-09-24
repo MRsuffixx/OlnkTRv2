@@ -15,10 +15,12 @@ import { isBasicBlockType } from "./preview/basic-block-preview";
 
 export function BlockInspector({
   block,
+  blocks,
   onChange,
   onBack,
 }: {
   block: EditorBlock;
+  blocks: EditorBlock[];
   onChange: (config: unknown) => void;
   onBack: () => void;
 }) {
@@ -48,7 +50,21 @@ export function BlockInspector({
       </div>
       <div className="grid gap-5 p-4">
         {isBasicBlockType(block.type) ? (
-          <BasicBlockInspector block={block} onChange={onChange} />
+          <BasicBlockInspector
+            block={block}
+            hasMultipleH1={
+              blocks.filter(
+                (item) =>
+                  item.enabled &&
+                  item.type === "HEADING" &&
+                  item.config &&
+                  typeof item.config === "object" &&
+                  "level" in item.config &&
+                  item.config.level === 1,
+              ).length > 1
+            }
+            onChange={onChange}
+          />
         ) : null}
         {block.type === "HIGHLIGHT" ? (
           <>

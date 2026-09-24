@@ -34,6 +34,23 @@ describe("basic block editor UI", () => {
     expect(featured).toContain("Launch");
     expect(featured).toContain("See what is new");
     expect(featured).toContain('data-block-preview="featured-link"');
+    expect(featured).toContain('data-presentation="spotlight"');
+
+    const imageFeatured = renderToStaticMarkup(
+      createElement(BasicBlockPreview, {
+        type: "FEATURED_LINK",
+        config: {
+          title: "Visual launch",
+          url: "https://example.com/visual",
+          presentation: "image",
+          assetId: "cm12345678901234567890123",
+        },
+        theme: defaultThemeConfig,
+        labels,
+      }),
+    );
+    expect(imageFeatured).toContain('data-presentation="image"');
+    expect(imageFeatured).toContain("/api/media/cm12345678901234567890123");
 
     const adult = renderToStaticMarkup(
       createElement(BasicBlockPreview, {
@@ -50,6 +67,24 @@ describe("basic block editor UI", () => {
     expect(adult).toContain("Adults only");
     expect(adult).toContain("18+");
     expect(adult).not.toContain('href="https://example.com/adult"');
+  });
+
+  it("uses per-block Button styling in the live preview", () => {
+    const button = renderToStaticMarkup(
+      createElement(BasicBlockPreview, {
+        type: "BUTTON",
+        config: {
+          title: "Quiet action",
+          url: "https://example.com",
+          useGlobalStyle: false,
+          style: "minimal",
+        },
+        theme: defaultThemeConfig,
+        labels,
+      }),
+    );
+    expect(button).toContain("background:transparent");
+    expect(button).toContain("color:var(--olnk-page-text)");
   });
 
   it("keeps spacer rendering bounded", () => {
